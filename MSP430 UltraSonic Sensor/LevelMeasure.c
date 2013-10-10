@@ -2,7 +2,7 @@
  * LevelMeasure.c
  *
  *  Created on: 3 okt 2013
- *      Author: Challe
+ *      Author: hej
  */
 #include "LevelMeasure.h"
 
