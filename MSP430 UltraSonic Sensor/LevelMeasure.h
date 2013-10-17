@@ -11,17 +11,21 @@
 #include <msp430.h>
 
 #define trigPin P5OUT
-#define trigPin_nr 0x01
+#define trigPin_nr BIT0
 #define trigPin_DIR P5DIR
 #define BUTTON BIT6
 #define ECHO BIT2
 #define LED BIT0
+#define DataLength 10
 
 unsigned int SonicEcho;
 int EdgeCount;
 //#include <msp430.h>
 
 
+void measure();
+
+void sortData(unsigned int data[], int length);
 
 void directionSetup();
 
