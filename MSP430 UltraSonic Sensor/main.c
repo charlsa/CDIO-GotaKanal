@@ -1,6 +1,6 @@
 #include <msp430.h> 
 #include "LevelMeasure.h"
-
+		// Number of measurments to build mean value
 /*
  * main.c
  */
@@ -30,9 +30,11 @@ void clockSetup(){
     // 32 x 32 x 8 MHz / 32,768 Hz = 250000 = MCLK cycles for DCO to settle
 }
 
+// Ska mäta sensorn 10ggr och spara medianvärdet
+
+
+
 int main(void) {
-
-
     WDTCTL = WDTPW+WDTHOLD;                   // Stop WDT
     directionSetup();
     clockSetup();
@@ -41,19 +43,16 @@ int main(void) {
     __enable_interrupt();
     timerA0Setup();
 	__delay_cycles(250000);
-	unsigned int distance;
 
-	while(1){
+while(1){
+
 		while(!(P2IN &= BIT6)){
-			triggerPulse();
-			echo();
+
+			measure();
 			//		trigPin ^= trigPin_nr;  // toggle output pin
 			//		P2IFG &= ~BIT6;  				// clear interruptflag
 			__delay_cycles(20000);
-			SensorCalc(&distance);
-			__delay_cycles(2);
-		}
-
 
 		}
+	}
 }
