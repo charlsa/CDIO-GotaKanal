@@ -18,6 +18,7 @@ void measure()
 		triggerPulse();
 		echo();
 		SensorCalc(&data[i]);
+		// Verifie that the data is correct
 		if((data[i] < 220 && data[i] > 35) || j > 9){
 			i++;
 			j = 0;
@@ -30,7 +31,6 @@ void measure()
 }
 
 void sortData(unsigned int data[], int length){
-
     int i, j, tmp;
     for(j = 1; j < length; j++)    // Start with 1 (not 0)
     {
@@ -39,7 +39,7 @@ void sortData(unsigned int data[], int length){
         {
     		data[i+1] = data[i];
         }
-            data[i+1] = tmp;    //Put key into its proper location
+        	data[i+1] = tmp;    //Put key into its proper location
         }
 }
 
@@ -78,10 +78,12 @@ void triggerPulse(){
 	trigPin ^= trigPin_nr;
 	__delay_cycles(80);
 }
-/////////Startar timer i capture mode och väntar på två interruptflanker
-//////// Tiden mellan flankerna sparas i variabeln sonic echo
-void echo(){
 
+void echo(){
+	/* 
+	 * Startar timer i capture mode och väntar på två interruptflanker	
+	 * Tiden mellan flankerna sparas i variabeln sonic echo
+	 */
 	EdgeCount = 0;
 	SonicEcho = 0;
 	TA0CCTL1 &= ~CCIFG;
@@ -95,26 +97,24 @@ void echo(){
 	TA0CCTL1 &= ~CCIE;			// Disable catch interrupt
 
 }
-//Converts the pulse width of the measuring echo
+
 void SensorCalc(int* dist){
-
+	//Converts the pulse width of the measuring echo
 	*dist = (SonicEcho/58);
-
 }
 
 #pragma vector=TIMER0_A1_VECTOR
 __interrupt void CCR1_ISR(void)
 {
-
 	if (EdgeCount == 0)
-		{
-			SonicEcho = TA0CCR1;
-			EdgeCount++;
-		}
+	{
+		SonicEcho = TA0CCR1;
+		EdgeCount++;
+	}
 	else if (EdgeCount == 1)
-		{
+	{
 		SonicEcho = TA0CCR1 - SonicEcho;
-		}
+	}
 
 	TA0CCTL1 &= ~CCIFG;			// Clear catch interruptflag
 
