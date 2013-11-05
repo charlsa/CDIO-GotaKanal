@@ -7,9 +7,9 @@
 #include "LevelMeasure.h"
 
 
-////////////////Funktionen mäter 10 värden och sparar i lokala vecktorn "data"
+////////////////Funktionen mÃ¤ter 10 vÃ¤rden och sparar i lokala vecktorn "data"
 //////////////// datavektorn sorteras efter storleksordning
-void measure()
+int measure()
 {
 	unsigned int data[DataLength];
 //	unsigned int data;
@@ -19,7 +19,7 @@ void measure()
 		echo();
 		SensorCalc(&data[i]);
 		// Verifie that the data is correct
-		if((data[i] < 220 && data[i] > 35) || j > 9){
+		if((data[i] < Oveflow && data[i] > Underflow) || j > 9){
 			i++;
 			j = 0;
 		}
@@ -27,8 +27,46 @@ void measure()
 		__delay_cycles(200);
 	}
 	sortData(data, DataLength);
+	int value = 0;
+	value = pickvalue();
 	__delay_cycles(20);
+	return value;
 }
+
+int pickvalue(unsigned int data[], int length)
+{
+  int countend = 0;
+  int countstart = 0;
+  int g = 0;
+  int d = 0;
+    for (d; d<length; d++)
+		{
+		  if (data[d]< Underflow)
+		  {
+			countstart++;
+		  }
+
+		  if (data[d] > Oveflow)
+		  {
+			countend++;
+		  }
+    }
+
+    g = length - countend;
+    g = g - countstart;
+    g = g/2;
+    g = g + countstart;
+
+    if (data[g] <= Oveflow && data[g] >= Underflow)
+    {
+      return data[g];
+    }
+  return 0;
+}
+
+
+
+
 
 void sortData(unsigned int data[], int length){
     int i, j, tmp;
@@ -81,7 +119,7 @@ void triggerPulse(){
 
 void echo(){
 	/* 
-	 * Startar timer i capture mode och väntar på två interruptflanker	
+	 * Startar timer i capture mode och vÃ¤ntar pÃ¥ tvÃ¥ interruptflanker	
 	 * Tiden mellan flankerna sparas i variabeln sonic echo
 	 */
 	EdgeCount = 0;
