@@ -13,6 +13,7 @@ void clockSetup(){
 
     P4DIR |= 0x80;							// P4.7 SMCLK
     P4SEL |= 0x80;						    // P4.7 for debugging freq.
+
 	UCSCTL3 |= SELREF_2;                    // Set DCO FLL reference = REFO
 	UCSCTL4 |= SELA_2;                      // Set ACLK = REFO
 	__bis_SR_register(SCG0);                // Disable the FLL control loop
@@ -30,7 +31,7 @@ void clockSetup(){
     // 32 x 32 x 8 MHz / 32,768 Hz = 250000 = MCLK cycles for DCO to settle
 }
 
-// Ska mäta sensorn 10ggr och spara medianvärdet
+// Ska mÃ¤ta sensorn 10ggr och spara medianvÃ¤rdet
 
 
 
@@ -43,16 +44,17 @@ int main(void) {
     __enable_interrupt();
     timerA0Setup();
 	__delay_cycles(250000);
+	int sensorvalue;
 
 while(1){
 
-		while(!(P2IN &= BIT6)){
+		//while(!(P2IN &= BIT6)){
 
-			measure();
+			sensorvalue = measure();
 			//		trigPin ^= trigPin_nr;  // toggle output pin
 			//		P2IFG &= ~BIT6;  				// clear interruptflag
-			__delay_cycles(20000);
+			__delay_cycles(200000);
 
-		}
+		//}
 	}
 }
