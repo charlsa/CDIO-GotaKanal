@@ -10,20 +10,22 @@
 
 #include <msp430.h>
 
-#define trigPin P5OUT
-#define trigPin_nr BIT0
-#define trigPin_DIR P5DIR
+#define trigPin P1OUT
+#define trigPin_nr BIT7
+#define trigPin_DIR P1DIR
 #define BUTTON BIT6
 #define ECHO BIT2
 #define LED BIT0
 #define DataLength 10
+#define Oveflow 220
+#define Underflow 35
 
 unsigned int SonicEcho;
 int EdgeCount;
 //#include <msp430.h>
 
 
-void measure();
+int measure();
 
 void sortData(unsigned int data[], int length);
 
