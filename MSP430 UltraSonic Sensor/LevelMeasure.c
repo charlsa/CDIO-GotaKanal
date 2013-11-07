@@ -1,159 +1,68 @@
-/*
- * LevelMeasure.c
- *
- *  Created on: 3 okt 2013
- *      Author: hej
- */
+#include <msp430.h> 
 #include "LevelMeasure.h"
-
-
-////////////////Funktionen mÃ¤ter 10 vÃ¤rden och sparar i lokala vecktorn "data"
-//////////////// datavektorn sorteras efter storleksordning
-int measure()
-{
-	unsigned int data[DataLength];
-//	unsigned int data;
-	int i = 0, j=0;
-	while(i < DataLength){
-		triggerPulse();
-		echo();
-		SensorCalc(&data[i]);
-		// Verifie that the data is correct
-		if((data[i] < Oveflow && data[i] > Underflow) || j > 9){
-			i++;
-			j = 0;
-		}
-		j++;
-		__delay_cycles(200);
-	}
-	sortData(data, DataLength);
-	int value = 0;
-	value = pickvalue();
-	__delay_cycles(20);
-	return value;
-}
-
-int pickvalue(unsigned int data[], int length)
-{
-  int countend = 0;
-  int countstart = 0;
-  int g = 0;
-  int d = 0;
-    for (d; d<length; d++)
-		{
-		  if (data[d]< Underflow)
-		  {
-			countstart++;
-		  }
-
-		  if (data[d] > Oveflow)
-		  {
-			countend++;
-		  }
-    }
-
-    g = length - countend;
-    g = g - countstart;
-    g = g/2;
-    g = g + countstart;
-
-    if (data[g] <= Oveflow && data[g] >= Underflow)
-    {
-      return data[g];
-    }
-  return 0;
-}
-
-
-
-
-
-void sortData(unsigned int data[], int length){
-    int i, j, tmp;
-    for(j = 1; j < length; j++)    // Start with 1 (not 0)
-    {
-    	tmp = data[j];
-    	for(i = j - 1; (i >= 0) && (data[i] < tmp); i--)   // Smaller values move up
-        {
-    		data[i+1] = data[i];
-        }
-        	data[i+1] = tmp;    //Put key into its proper location
-        }
-}
-
-
-void directionSetup(){
-	 trigPin_DIR |= trigPin_nr;					// Set output direction
-	 trigPin &= ~trigPin_nr;					// Set pin low
-
-	 P1DIR &= ~ECHO; 							// Echo pin
-	 P1SEL = ECHO;								// set P1.2 to TA0
-}
-
-void timerA0Setup(){
-	 TA0CTL = TASSEL_2 + MC_0 + ID_3 + TACLR; 			// SMCLK, stop, div8, clearTAR, interrupt enable
-	 TA0CCTL1 = CM_3 + CCIS_0 + CAP + SCCI;								// Capturer mode pos/neg flank, P1.2 input
-}
-
-void interuptPin(){ // debuging button
-	P2DIR |= BIT6;
-	P2OUT |= BIT6;		// Set pullup for button
-
-	/* INTERRUPT SETUP
-    P2IFG &= ~BIT6;				// Clear interruptflag
-    P2IE |= BIT6;
-    P2IES |= BIT6; */ 			// select interrupt edge rising
-}
-
-void triggerPulse(){
+		// Number of measurments to build mean value
+/*
+ * main.c
+ */
+void clockSetup(){
 	/*
-	 * Generate a 12.2 us pulse to trig the ultrasonic sensor
-	 * The cycle delay is calculated by
-	 * f_mclk*Pulse_time = (8 MHz)*(10 us) = 80 cyckes
+	 * Need to understand more about this...c
+	 *
 	 */
-	trigPin ^= trigPin_nr;
-	__delay_cycles(80);
-	trigPin ^= trigPin_nr;
-	__delay_cycles(80);
+    //P2DIR == 0x00;	 // for pulse generating
+
+    P4DIR |= 0x80;							// P4.7 SMCLK
+    P4DIR |= FiveVolt;
+    P4SEL |= 0x80;						    // P4.7 for debugging freq.
+
+    P11DIR |= BIT0;                                                        // ACLK
+       P11SEL |= BIT0;                                                        // P11.0
+
+      UCSCTL3 |= SELREF_2;                    // Set DCO FLL reference = REFO
+           UCSCTL4 |= SELA_4;                      // Set ACLK = REFO
+           __bis_SR_register(SCG0);                // Disable the FLL control loop
+           UCSCTL0 = 0x0000;                       // Set lowest possible DCOx, MODx
+           UCSCTL1 = DCORSEL_5;                    // Select DCO range 16MHz operation
+           UCSCTL2 = FLLD_1 + 122;          //122                // Set DCO Multiplier for 8MHz
+           UCSCTL5 = DIVA__4 + DIVS__4; // test 2MHz
+
+
+
+
+	__bic_SR_register(SCG0);                // Enable the FLL control loop
+
+    // Worst-case settling time for the DCO when the DCO range bits have been
+    // changed is n x 32 x 32 x f_MCLK / f_FLL_reference. See UCS chapter in 5xx
+    // UG for optimization.
+    // 32 x 32 x 8 MHz / 32,768 Hz = 250000 = MCLK cycles for DCO to settle
 }
 
-void echo(){
-	/* 
-	 * Startar timer i capture mode och vÃ¤ntar pÃ¥ tvÃ¥ interruptflanker	
-	 * Tiden mellan flankerna sparas i variabeln sonic echo
-	 */
-	EdgeCount = 0;
-	SonicEcho = 0;
-	TA0CCTL1 &= ~CCIFG;
-	TA0CTL |= MC_2; 			// start continius mode
-	TA0CTL &= ~TAIFG;			// Reset TA1 interrupt/owerflowflag
-	TA0CCTL1 |= CCIE;
-	TA0R = 0x0000; 				// Reset timer
+// Ska mÃ¤ta sensorn 10ggr och spara medianvÃ¤rdet
 
-	while((TA0R < 0x9C40)); 	// Wait for timer to count to 9C40 = 40ms
 
-	TA0CCTL1 &= ~CCIE;			// Disable catch interrupt
 
-}
+int main(void) {
+    WDTCTL = WDTPW+WDTHOLD;                   // Stop WDT
+    directionSetup();
+    clockSetup();
 
-void SensorCalc(int* dist){
-	//Converts the pulse width of the measuring echo
-	*dist = (SonicEcho/58);
-}
+    interuptPin();
+    __enable_interrupt();
+    timerA0Setup();
+	__delay_cycles(250000);
+	int sensorvalue;
 
-#pragma vector=TIMER0_A1_VECTOR
-__interrupt void CCR1_ISR(void)
-{
-	if (EdgeCount == 0)
-	{
-		SonicEcho = TA0CCR1;
-		EdgeCount++;
+while(1){
+
+		//while(!(P2IN &= BIT6)){
+
+			P4OUT |= FiveVolt;
+			sensorvalue = measure();
+			P4OUT &= ~FiveVolt;
+			//		trigPin ^= trigPin_nr;  // toggle output pin
+			//		P2IFG &= ~BIT6;  				// clear interruptflag
+			__delay_cycles(20000000);
+
+		//}
 	}
-	else if (EdgeCount == 1)
-	{
-		SonicEcho = TA0CCR1 - SonicEcho;
-	}
-
-	TA0CCTL1 &= ~CCIFG;			// Clear catch interruptflag
-
 }
