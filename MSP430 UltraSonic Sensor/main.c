@@ -14,13 +14,18 @@ void clockSetup(){
     P4DIR |= 0x80;							// P4.7 SMCLK
     P4SEL |= 0x80;						    // P4.7 for debugging freq.
 
-	UCSCTL3 |= SELREF_2;                    // Set DCO FLL reference = REFO
-	UCSCTL4 |= SELA_2;                      // Set ACLK = REFO
-	__bis_SR_register(SCG0);                // Disable the FLL control loop
-	UCSCTL0 = 0x0000;                       // Set lowest possible DCOx, MODx
-	UCSCTL1 = DCORSEL_5;                    // Select DCO range 16MHz operation
-	UCSCTL2 = FLLD_1 + 244;                 // Set DCO Multiplier for 8MHz
-	                                        // (N + 1) * FLLRef = Fdco
+
+    P11DIR |= BIT0;                                                        // ACLK
+       P11SEL |= BIT0;                                                        // P11.0
+
+      UCSCTL3 |= SELREF_2;                    // Set DCO FLL reference = REFO
+      UCSCTL4 |= SELA_4;                      // Set ACLK = REFO
+      __bis_SR_register(SCG0);                // Disable the FLL control loop
+      UCSCTL0 = 0x0000;                       // Set lowest possible DCOx, MODx
+      UCSCTL1 = DCORSEL_5;                    // Select DCO range 16MHz operation
+      UCSCTL2 = FLLD_1 + 122;          //122                // Set DCO Multiplier for 8MHz
+      UCSCTL5 = DIVA__4 + DIVS__4; // test 2MHz
+
 											// (244 + 1) * 32768 = 8MHz
 											// Set FLL Div = fDCOCLK/2
 	__bic_SR_register(SCG0);                // Enable the FLL control loop
