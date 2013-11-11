@@ -1,26 +1,28 @@
 /*
- * GSMmodul.h
+ * Flash.h
  *
- *  Created on: 5 okt 2013
- *      Author: Challe
+ *  Created on: 11 nov 2013
+ *      Author: Peter
  */
-
-#ifndef GSMMODUL_H_
-#define GSMMODUL_H_
-
 #include <msp430.h>
+#ifndef FLASH_H_
+#define FLASH_H_
 
-void initUART();
+// Writes Position to flash segment D max length = 30 chars
+void writePosition(char Value[]);
+// Reads position from flash segment D
+char readPosition(char* buffer);
 
-void triggLED(); // used to indicate interrupt
+void writeTolerance(int value);
 
-void deBuggSetup(); // interrupt on button 1 to test
+void writeSensorHight(int value);
 
-void transmittUART(); // Send via UART needs to be changed to returning char or sending refernce
+int readTolerance();
 
-void reciveUART();	// Receive from uart... Needs to be changed to returining char or sending reference
-					// also a buffer cheak needs to be implemented
+int readSensorHight();
 
-__interrupt void Port_2(void); // Button interrupt for testing...
 
-#endif /* GSMMODUL_H_ */
+
+
+
+#endif /* FLASH_H_ */
