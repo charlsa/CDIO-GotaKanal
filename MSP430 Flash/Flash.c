@@ -1,72 +1,149 @@
 /*
- * GSMmodul.c
+ * Flash.c
  *
- *  Created on: 5 okt 2013
- *      Author: Challe
+ *  Created on: 11 nov 2013
+ *      Author: Peter
  */
+#include "Flash.h"
 
-#include "GSMmodul.h"
-
-// Global variabels for testing UART
-unsigned char send = 'e';
-unsigned char trans = 'v';
-
-void initUART() {
-    P3SEL = BIT4+BIT5;  	// Pin selection for UART1 communication @ Pin 3.4 (TX) & Pin 3.5 (RX)
-
-    UCA0CTL1 |= UCMSB;  	// Datapackage for UART-mode with [Parity off, MSB first, STOP bit = 1]
-
-    UCA0CTL1|= UCSSEL1; 	//Select boudrate CLK sourse to SCMLK 8 MHz, UCSWRST is set by default
-
-    UCA0BR0 = 0x34;        	//9600 baudrate, values from tabel 1.5 withe 8 MHz clk
-    UCA0BR1 = 0x00; 		// BR_value = 52
-
-//    UCA1STAT |= 0x80;		// Loopfeed back enabel for debuging
-
-    UCA0MCTL |= UCOS16;		// Oversampling mode selected if changed the boudrate needs to be changed
-
-    UCA0CTL1 &= ~UCSWRST;	// Enables the UART
-}
-
-void triggLED(){
-	/*
-	 * Trig the LED for debugging
-	 */
-	P1OUT ^= BIT0;
-	__delay_cycles(80000);
-	P1OUT ^= BIT0;
-}
-
-void deBuggSetup(){
-	// debuging button with interrupt
-	P1DIR |= BIT0; 		// test led2
-
-	P2DIR |= BIT6;
-	P2OUT |= BIT6;		// Set pullup for button
-
-	// Interrupt button
-    P2IFG &= ~BIT6;		// Clear interruptflag
-    P2IE |= BIT6;
-    P2IES |= BIT6; 		// select interrupt edge rising
-}
-
-void transmittUART(){
-	while (!(UCA0IFG & UCTXIFG)); 	// USCI0 TX buffer ready
-	UCA0TXBUF = send;				// Wright to TX buffer
-}
-
-void reciveUART(){
-	trans = UCA0RXBUF; 				// read from RX buffer
-}
-
-#pragma vector=PORT2_VECTOR
-__interrupt void Port_2(void)
+void writePosition(char Value[])
 {
-	__delay_cycles(80000);
-	triggLED();
-	transmittUART();
-	__delay_cycles(1000);
-	reciveUART();
-	P2IFG &= ~BIT6;				// Clear interruptflag
+	int Length = 0;
+	int j = 0;
+	Length = strlen(Value);
+	char * Flash_ptr;                         // Initialize Flash pointer
+	Flash_ptr = (char *) 0x1800;
+	__disable_interrupt();                    // 5xx Workaround: Disable global
+                                            // interrupt while erasing. Re-Enable
+                                            // GIE if needed
+  FCTL3 = FWKEY;                            // Clear Lock bit
+  FCTL1 = FWKEY+ERASE;                      // Set Erase bit
+  *(unsigned int *)Flash_ptr = 0;
+  FCTL1 = FWKEY+WRT;                        // Set WRT bit for write operation
+
+  for(j = 0; j < Length; j++)
+  {
+	  *Flash_ptr++ = Value[j];                 // Write value to flash increase adress
+  }
+  *Flash_ptr++ = '#';
+
+  FCTL1 = FWKEY;                            // Clear WRT bit
+  FCTL3 = FWKEY+LOCK;                       // Set LOCK bit
+  __enable_interrupt();
+
 }
+
+char readPosition(char* buffer)
+{
+int Length = 30;
+int j = 0;
+  //Length = strlen(buffer);
+  char *Flash_ptrD;
+
+  Flash_ptrD = (char *) 0x1800;             // Initialize Flash segment C ptr
+  Flash_ptrD = Flash_ptrD;
+  __disable_interrupt();                    // 5xx Workaround: Disable global
+                                            // interrupt while erasing. Re-Enable
+                                            // GIE if needed
+  FCTL3 = FWKEY;                            // Clear Lock bit
+  FCTL1 = FWKEY+ERASE;                      // Set Erase bit
+  FCTL1 = FWKEY+WRT;                        // Set WRT bit for write operation
+
+  for(j = 0; j < Length; j++)
+    {
+	  buffer[j] = *Flash_ptrD++;
+	  if(buffer[j] == '#')
+	  {
+		  break;
+	  }
+    }
+
+  FCTL1 = FWKEY;                            // Clear WRT bit
+  FCTL3 = FWKEY+LOCK;                       // Set LOCK bit
+  __enable_interrupt();
+}
+
+// Writes value of type Int to flash segment c.
+// tolerans value is placed on adress 0x1880
+void writeTolerance(int value)
+{
+	int adress = 1;
+	  int * Flash_ptr;                         // Initialize Flash pointer
+	  Flash_ptr = (int *) 0x1880;
+	  Flash_ptr = Flash_ptr + adress;
+	  __disable_interrupt();                    // 5xx Workaround: Disable global
+	                                            // interrupt while erasing. Re-Enable
+	  FCTL3 = FWKEY;                            // Clear Lock bit
+	  FCTL1 = FWKEY+ERASE;                      // Set Erase bit
+	  //*(unsigned int *)Flash_ptr = 0;
+	  FCTL1 = FWKEY+WRT;                        // Set WRT bit for write operation
+
+	  *Flash_ptr = value;                 // Write value to flash
+	  FCTL1 = FWKEY;                            // Clear WRT bit
+	  FCTL3 = FWKEY+LOCK;                       // Set LOCK bit
+	  __enable_interrupt();
+}
+
+
+// Reads tolerance of type Int from flash segment c.
+// tolerance is saved on adress 2;
+int readTolerance()
+{
+int adress = 1;
+  int k;
+  int *Flash_ptrC;
+
+  Flash_ptrC = (int *) 0x1880;             // Initialize Flash segment C ptr
+  Flash_ptrC = Flash_ptrC + adress;
+  __disable_interrupt();                    // 5xx Workaround: Disable global
+                                            // interrupt while erasing. Re-Enable
+                                            // GIE if needed
+  FCTL3 = FWKEY;                            // Clear Lock bit
+  FCTL1 = FWKEY+ERASE;                      // Set Erase bit
+  FCTL1 = FWKEY+WRT;                        // Set WRT bit for write operation
+   k = *Flash_ptrC;
+  FCTL1 = FWKEY;                            // Clear WRT bit
+  FCTL3 = FWKEY+LOCK;                       // Set LOCK bit
+  __enable_interrupt();
+  return k;
+}
+
+int readSensorHight()
+{
+	  int k;
+	  int *Flash_ptrC;
+
+	  Flash_ptrC = (int *) 0x1884;             // Initialize Flash segment C ptr
+	  __disable_interrupt();                    // 5xx Workaround: Disable global
+	                                            // interrupt while erasing. Re-Enable
+	                                            // GIE if needed
+	  FCTL3 = FWKEY;                            // Clear Lock bit
+	  FCTL1 = FWKEY+ERASE;                      // Set Erase bit
+	  FCTL1 = FWKEY+WRT;                        // Set WRT bit for write operation
+	   k = *Flash_ptrC;
+	  FCTL1 = FWKEY;                            // Clear WRT bit
+	  FCTL3 = FWKEY+LOCK;                       // Set LOCK bit
+	  __enable_interrupt();
+	  return k;
+}
+// Writes value of type Int to flash segment c.
+// Sensor Hight value is placed on adress 0x1884
+void writeSensorHight(int value)
+{
+	  int * Flash_ptr;                         // Initialize Flash pointer
+	  Flash_ptr = (int *) 0x1884;
+	  __disable_interrupt();                    // 5xx Workaround: Disable global
+	                                            // interrupt while erasing. Re-Enable
+	  FCTL3 = FWKEY;                            // Clear Lock bit
+	  FCTL1 = FWKEY+ERASE;                      // Set Erase bit
+	  //*(unsigned int *)Flash_ptr = 0;
+	  FCTL1 = FWKEY+WRT;                        // Set WRT bit for write operation
+
+	  *Flash_ptr = value;                 // Write value to flash
+	  FCTL1 = FWKEY;                            // Clear WRT bit
+	  FCTL3 = FWKEY+LOCK;                       // Set LOCK bit
+	  __enable_interrupt();
+}
+
+
 
