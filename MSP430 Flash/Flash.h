@@ -10,7 +10,7 @@
 
 // Writes Position to flash segment D max length = 30 chars
 void writePosition(char Value[]);
-// Reads position from flash segment D
+// Reads position from flash segment D. buffer arrayen fylls med chars och avslutas med # 
 char readPosition(char* buffer);
 
 void writeTolerance(int value);
