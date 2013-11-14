@@ -9,10 +9,11 @@
 #define LEVELMEASURE_H_
 
 #include <msp430.h>
+#include "math.h"
 
-#define trigPin P1OUT
-#define trigPin_nr BIT7
-#define trigPin_DIR P1DIR
+#define trigPin P11OUT
+#define trigPin_nr BIT2
+#define trigPin_DIR P11DIR
 #define BUTTON BIT6
 #define ECHO BIT2
 #define LED BIT0
@@ -22,10 +23,10 @@
 
 unsigned int SonicEcho;
 int EdgeCount;
-//#include <msp430.h>
 
+unsigned int measure();
 
-int measure();
+unsigned int mainFunctionSensor(unsigned int data[], int dataLength, int* position, char* alarm, char* dataEnable, int* overflowCount);
 
 void sortData(unsigned int data[], int length);
 
@@ -33,11 +34,15 @@ void directionSetup();
 
 void timerA0Setup();
 
+void interuptPin();
+
 void triggerPulse();
 
 void echo();
 
 void SensorCalc(int* dist);
+
+unsigned int meanMeasurement(int length, unsigned int data[], int* pos, int number);
 
 __interrupt void CCR1_ISR(void);
 

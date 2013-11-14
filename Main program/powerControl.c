@@ -9,6 +9,8 @@
 void powerPinSetup(){
 	P4DIR |= BIT0 + BIT1; 	// Bit1 5V and Bit0 4.1V
 	P3DIR |= BIT0;			// SHND Charger
+
+	P6DIR &= 0x00;			// DIP1 = P6.0
 }
 
 void chargerStart(){
@@ -33,4 +35,9 @@ void V5Start(){
 
 void V5Stop(){
 	P4OUT &= ~BIT1;
+}
+
+char readDIP(){
+	char DIP = P6IN;
+	return DIP;
 }

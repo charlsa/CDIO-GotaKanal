@@ -5,19 +5,32 @@
  *      Author: Challe
  */
 #include "CLK_RTC_setup.h"
-
+#include "powerControl.h"
 
 void clkDebug(){
 	// ACLK = P11.0, MCLK = P11.1, SMCLK = P11.2
     P11DIR |= BIT0 + BIT1 + BIT2;
     P11SEL |= BIT0 + BIT1 + BIT2;
 }
+/*
+void clockSetup1()
+{
+    P4DIR   |= 0x80;                        // P4.7 SMCLK
+    P4SEL   |= 0x80;                        // P4.7 for debugging freq.
+    UCSCTL3 |= SELREF_2;                    // Set DCO FLL reference = REFO
+    UCSCTL4 |= SELA_2;                      // Set ACLK = REFO
+    __bis_SR_register(SCG0);                // Disable the FLL control loop
+    UCSCTL0 = 0x0000;                       // Set lowest possible DCOx, MODx
+    UCSCTL1 = DCORSEL_5;                    // Select DCO range 16MHz operation
+    UCSCTL2 = FLLD_1 + 244;                 // Set DCO Multiplier for 8MHz
+                                                // (N + 1) * FLLRef = Fdco
+
+    __bic_SR_register(SCG0);                // Enable the FLL control loop
+}
+*/
 
 void clkSetup(){
-	/*
-	 * Need to understand more about this...c
-	 *
-	 */
+
 
 	UCSCTL3 |= SELREF_2;                    // Set DCO FLL reference = REFO
 	UCSCTL4 |= SELA_4;                      // Set ACLK = REFO
@@ -25,7 +38,7 @@ void clkSetup(){
 	UCSCTL0 = 0x0000;                       // Set lowest possible DCOx, MODx
 	UCSCTL1 = DCORSEL_5;                    // Select DCO range 16MHz operation
 	UCSCTL2 = FLLD_1 + 122;  		        // Set DCO Multiplier for 8MHz
-	UCSCTL5 = DIVA__4 + DIVS__4; 			// test 2MHz
+	UCSCTL5 = DIVA__4 + DIVS__4; 			// Divide CLK
 	                                        // (N + 1) * FLLRef = Fdco
 											// (244 + 1) * 32768 = 8MHz
 											// Set FLL Div = fDCOCLK/2
@@ -42,13 +55,13 @@ void rtcSetup(){
 	RTCCTL01 |= RTCTEV_3 + RTCTEVIE;	// 32 bits overflow ACLK default, Interrupt Enable
 	// clear registers
 	RTCTIM0 = 0;
-	RTCTIM1 = 0xFF00; // offset tuned to one minute
+	RTCTIM1 = 0xFF40; // offset tuned to one minute
 }
 
 void rtcStart(){
 	if(RTCTIM0 != 0) RTCTIM0 = 0;	// if not reseted, reset
 	//if(RTCTIM1 != 0) RTCTIM1 = 0; // changed to offset
-
+	RTCTIM1 = 0xFFF8;
 	RTCCTL01 &= ~RTCHOLD; 			// Start RTC (Hold is writen to Zero)
 	__bis_SR_register(LPM3_bits + GIE); // Sets the MCU into LPM3 => only (ACLK != 0)
 }
@@ -60,8 +73,10 @@ void rtcStop(){
 #pragma vector=RTC_VECTOR
 __interrupt void RTC_ISR(void)
 {
-	LPM1;					// Go back to LMP1
+	LPM3_EXIT;
 	rtcStop(); 				// stop RTC
 	RTCTIM0 = 0;
+//	V4Start();
+//	__delay_cycles(1000);
 	RTCCTL01 &= ~RTCTEVIFG;
 }

@@ -6,10 +6,54 @@
  */
 #include "LevelMeasure.h"
 
+unsigned int mainFunctionSensor(unsigned int vector[], int dataLength, int* position, char* alarm, char* dataEnable, int* overflowCount)
+{
+	int value = measure();
+	unsigned int meanValue;
+	int tmp_pos = *position;
+	int tmp_overf = *overflowCount;
+	char tmp_enable = *dataEnable;
+
+	if(value != 0)
+	{
+		vector[tmp_pos] = value;
+//		__delay_cycles(2500);
+
+		if(tmp_pos > 5 || tmp_enable != 0)
+		{
+			meanValue = meanMeasurement(dataLength, vector, &tmp_pos, 5); // 5 = nr of meas in the mean value
+		}
+		else
+		{}
+
+		if(tmp_pos == 29)
+		{
+			*position = 0;
+		}
+		else if(tmp_pos == 5 && tmp_enable == 0){
+			tmp_enable = '1';
+			*dataEnable = tmp_enable;
+		}
+		else
+		{
+			tmp_pos++;
+			*position = tmp_pos;
+		}
+		tmp_overf = 0;
+		*overflowCount = tmp_overf;
+	}
+	else
+	{
+		tmp_overf++;
+		*overflowCount = tmp_overf;
+	}
+	return meanValue;
+}
+
 
 ////////////////Funktionen mÃ¤ter 10 vÃ¤rden och sparar i lokala vecktorn "data"
 //////////////// datavektorn sorteras efter storleksordning
-int measure()
+unsigned int measure()
 {
 	unsigned int data[DataLength];
 //	unsigned int data;
@@ -28,42 +72,42 @@ int measure()
 	}
 	sortData(data, DataLength);
 	int value = 0;
-	value = pickvalue();
+	value = pickvalue(data, DataLength);
 	__delay_cycles(20);
 	return value;
 }
 
 int pickvalue(unsigned int data[], int length)
-
 {
   int countend = 0;
   int countstart = 0;
   int g = 0;
   int d = 0;
-    for (d; d<length; d++)
-		{
-		  if (data[d]< Underflow)
-		  {
-			countstart++;
-		  }
 
-		  if (data[d] > Oveflow)
-		  {
-			countend++;
-		  }
-    }
+  for (d; d < length; d++)
+  {
+	  if (data[d]< Underflow)
+	  {
+		  countstart++;
+	  }
+	  if (data[d] > Oveflow)
+	  {
+		  countend++;
+	  }
+  }
 
-    g = length - countend;
-    g = g - countstart;
-    g = g/2;
-    g = g + countstart;
+  g = length - countend;
+  g = g - countstart;
+  g = g/2;
+  g = g + countstart;
 
-    if (data[g] <= Oveflow && data[g] >= Underflow)
-    {
-      return data[g];
-    }
+  if (data[g] <= Oveflow && data[g] >= Underflow)
+  {
+	  return data[g];
+  }
   return 0;
 }
+
 
 void sortData(unsigned int data[], int length){
     int i, j, tmp;
@@ -74,10 +118,9 @@ void sortData(unsigned int data[], int length){
         {
     		data[i+1] = data[i];
         }
-        	data[i+1] = tmp;    //Put key into its proper location
-        }
+        data[i+1] = tmp;    //Put key into its proper location
+    }
 }
-
 
 void directionSetup(){
 	 trigPin_DIR |= trigPin_nr;					// Set output direction
@@ -90,6 +133,11 @@ void directionSetup(){
 void timerA0Setup(){
 	 TA0CTL = TASSEL_2 + MC_0 + ID_0 + TACLR; 			// SMCLK, stop, div8, clearTAR, interrupt enable
 	 TA0CCTL1 = CM_3 + CCIS_0 + CAP + SCCI;								// Capturer mode pos/neg flank, P1.2 input
+}
+
+void interuptPin(){ // debuging button
+	P2DIR |= BIT6;
+	P2OUT |= BIT6;		// Set pullup for button
 }
 
 void triggerPulse(){
@@ -117,14 +165,41 @@ void echo(){
 	TA0R = 0x0000; 				// Reset timer
 
 	while((TA0R < 0x9C40)); 	// Wait for timer to count to 9C40 = 40ms
-
+	TA0R = 0x0000;
 	TA0CCTL1 &= ~CCIE;			// Disable catch interrupt
-
 }
 
 void SensorCalc(int* dist){
 	//Converts the pulse width of the measuring echo
 	*dist = (SonicEcho/58);
+}
+
+unsigned int meanMeasurement(int length, unsigned int data[], int* pos, int number){
+	unsigned int sum = 0;
+	int tmp = *pos;
+
+	if(tmp < (number-1)){
+		int a = (number-1)-tmp; // ex 4-2 = 2 nr of numbers from the top of the vector
+
+		while(a != 0)
+		{
+			sum += data[tmp--];
+		}
+
+		while((length-1-tmp) != length-tmp)
+		{ // pos = 0 and loop to tmp
+			sum += data[(length-1-tmp)];
+			tmp++;
+		}
+	}
+	else{
+		int endPos = (tmp-number);
+
+		while (tmp != endPos){
+			sum += data[tmp--];
+		}
+	}
+	return sum/number;
 }
 
 #pragma vector=TIMER0_A1_VECTOR
