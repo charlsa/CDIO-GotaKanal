@@ -24,7 +24,7 @@ void sendCtrlZ(void);
 //Compare response from GSM to wanted response
 int compareEasy(char *response, const char *wantedResponse);
 
-void readSMS();
+char readSMS();
 
 int searchForSMS(char *message);
 

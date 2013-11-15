@@ -76,7 +76,14 @@ __interrupt void RTC_ISR(void)
 	LPM3_EXIT;
 	rtcStop(); 				// stop RTC
 	RTCTIM0 = 0;
-//	V4Start();
-//	__delay_cycles(1000);
+/*	if (loop1 > loopChange)		// when lopp1 have count to 20 then loop2 is enable
+	{
+		loop2Mode = '1';
+		startMode = '0';
+		V5Start();
+		V4Start();
+	}*/
+
+
 	RTCCTL01 &= ~RTCTEVIFG;
 }

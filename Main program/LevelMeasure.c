@@ -6,7 +6,15 @@
  */
 #include "LevelMeasure.h"
 
-unsigned int mainFunctionSensor(unsigned int vector[], int dataLength, int* position, char* alarm, char* dataEnable, int* overflowCount)
+void directionSetup(){
+	 trigPin_DIR |= trigPin_nr;					// Set output direction
+	 trigPin &= ~trigPin_nr;					// Set pin low
+
+	 P1DIR &= ~ECHO; 							// Echo pin
+	 P1SEL = ECHO;								// set P1.2 to TA0
+}
+
+int mainFunctionSensor(unsigned int vector[], int dataLength, int* position, char* dataEnable, int* overflowCount)
 {
 	int value = measure();
 	unsigned int meanValue;
@@ -17,7 +25,6 @@ unsigned int mainFunctionSensor(unsigned int vector[], int dataLength, int* posi
 	if(value != 0)
 	{
 		vector[tmp_pos] = value;
-//		__delay_cycles(2500);
 
 		if(tmp_pos > 5 || tmp_enable != 0)
 		{
@@ -79,33 +86,33 @@ unsigned int measure()
 
 int pickvalue(unsigned int data[], int length)
 {
-  int countend = 0;
-  int countstart = 0;
-  int g = 0;
-  int d = 0;
+	int countend = 0;
+	int countstart = 0;
+	int g = 0;
+	int d = 0;
 
-  for (d; d < length; d++)
-  {
-	  if (data[d]< Underflow)
-	  {
-		  countstart++;
-	  }
-	  if (data[d] > Oveflow)
-	  {
-		  countend++;
-	  }
-  }
+	for (d; d < length; d++)
+	{
+		if (data[d]< Underflow)
+		{
+			countstart++;
+		}
+		if (data[d] > Oveflow)
+		{
+			countend++;
+		}
+	}
 
-  g = length - countend;
-  g = g - countstart;
-  g = g/2;
-  g = g + countstart;
+	g = length - countend;
+	g = g - countstart;
+	g = g/2;
+	g = g + countstart;
 
-  if (data[g] <= Oveflow && data[g] >= Underflow)
-  {
-	  return data[g];
-  }
-  return 0;
+	if (data[g] <= Oveflow && data[g] >= Underflow)
+	{
+		return data[g];
+	}
+	return 0;
 }
 
 
@@ -120,14 +127,6 @@ void sortData(unsigned int data[], int length){
         }
         data[i+1] = tmp;    //Put key into its proper location
     }
-}
-
-void directionSetup(){
-	 trigPin_DIR |= trigPin_nr;					// Set output direction
-	 trigPin &= ~trigPin_nr;					// Set pin low
-
-	 P1DIR &= ~ECHO; 							// Echo pin
-	 P1SEL = ECHO;								// set P1.2 to TA0
 }
 
 void timerA0Setup(){

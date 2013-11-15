@@ -26,7 +26,7 @@ int EdgeCount;
 
 unsigned int measure();
 
-unsigned int mainFunctionSensor(unsigned int data[], int dataLength, int* position, char* alarm, char* dataEnable, int* overflowCount);
+int mainFunctionSensor(unsigned int data[], int dataLength, int* position, char* dataEnable, int* overflowCount);
 
 void sortData(unsigned int data[], int length);
 

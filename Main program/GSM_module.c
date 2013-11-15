@@ -113,7 +113,7 @@ void sendCtrlZ(void)
 }
 
 //Read the unread SMS
-void readSMS()
+char readSMS()
 {
     sendATCommand(strlen(ATsetSmsStorage), ATsetSmsStorage);
 	uartEnable();

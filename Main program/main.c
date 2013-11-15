@@ -8,14 +8,21 @@
 #include "msp430.h"
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #define LengthOfSensordata 30
 
+// Global flags...
+int loop1 = 0;
+int loopChange = 20;
+char loop2Mode = '0';
+char startMode = '1';
+
 int main(void) {
     WDTCTL = WDTPW | WDTHOLD;	// Stop watchdog timer
+
     // Setup and pin configurations
     clkSetup();
-//    clockSetup1();
     directionSetup();
     timerA0Setup();
     powerPinSetup();
@@ -23,20 +30,24 @@ int main(void) {
 	initUART();
 	pinGSM();
 //	clkDebug();
+
     // Start-Up
-    // Set in Low-Power Mode 1
+	char startMode = '1';
+	char execution = '0';
 
 	// Sensor variables
-	V4Stop();
-	__delay_cycles(800000);
-
 	int sensorValue = 0;
 	int sensorData[LengthOfSensordata] = 0;
 	char dataEnable = 0; 		// != 0 if the vector is filled ones
 	int dataPosition = 0;
 	int overflowCount = 0;
-	char alarm = '0'; 			// 0 = Alarm false, 1 = true
-	char DIP = readDIP();
+
+	// Parameters
+	int lowerThresholds = 0;
+	int upperThresholds = 0;
+	int normalLvl = 0;
+
+	// GSM decision variable
 
 	V5Start(); // enable power for sensor
 	V4Start(); // Enable power to GSM
@@ -47,26 +58,95 @@ int main(void) {
 
 	while(1)
 	{
-    	// if RTC enable hold
-		if (dataEnable != 0)
-		initGSM();
+		V5Start();
+		if(loop2Mode == '1' || startMode == '1')
+		{	// Power on the GSM regulator
+			// pwrOn(); // if GSM off
+		}
 
-    	// if time for GSM operation
-		sensorValue = mainFunctionSensor(sensorData, LengthOfSensordata, &dataPosition, &alarm, &dataEnable, &overflowCount);
-		__no_operation();
-    	// Take measurement
+		sensorValue = mainFunctionSensor(sensorData, LengthOfSensordata, &dataPosition, &dataEnable, &overflowCount);
 
-    	// Cheak Data if alarme
+		if (loop2Mode == '1' || startMode == '1')
+		{	// wait for connection and check if SMS
+			execution = readSMS();
+			if (execution == '0')
+			{	// Nothing
+				break;
+			}
+			else if (execution == 'S')
+			{	// Status report
 
-    	// Send SMS
+			}
+			else if (execution == 'N')
+			{	// Confirm Nr change
 
-    	// Enable Low-Power Mode 3
+			}
+			else if (execution == 'L')
+			{	// Confirm changed normal level
 
-		// if statment for
-	//	V4Stop();
+			}
+			else if (execution == 'T')
+			{	// Confirm changed thresholds
 
-		if(sensorValue > 40)
-			sendSMS("ALARM!");
+			}
+			else if (execution == 'E')
+			{	// Enable SMS
+
+			}
+			else if (execution == 'D')
+			{	// Disable SMS
+
+			}
+			else
+			{	/* Nothing */	}
+		}
+
+		// if the GSM mode disable turn of the power
+		if (loop2Mode != '1' && startMode != '1') V5Stop();
+
+		if (dataEnable != 0 && overflowCount == 0)
+		{	// Process the sensor value
+			//evaluateData();
+			sensorValue = normalLvl - sensorValue ;
+			int absValue = fabs(sensorValue);
+			if (sensorValue > 0)
+			{	// Check if over normal the normal lvl
+				if (absValue > upperThresholds)
+				{	// Send alarm for high water lvl
+
+				}
+				else if (absValue > (upperThresholds)/2)
+				{	// Change RTC mode parameter
+
+				}
+				else if (absValue > (upperThresholds)/3)
+				{	// Change RTC mode parameter
+
+				}
+				else ;
+			}
+			else if (sensorValue < 0)
+			{	// Check if under the normal lvl
+				if (absValue > lowerThresholds)
+				{ // send alarm for low water lvl
+
+				}
+				else if (absValue > (lowerThresholds)/2)
+				{	// Change RTC mode parameter
+
+				}
+				else if (absValue > (lowerThresholds)/3)
+				{	// Change RTC mode parameter
+
+				}
+				else ;
+			}
+			else if (overflowCount > 5)
+			{	// Alarm overflow (Problem om man minskar RTC och något ligger ivägen!!!!)
+
+			}
+			else {}
+		}
 
 		rtcStart();
 	}
