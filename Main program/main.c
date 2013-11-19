@@ -1,4 +1,5 @@
 //#include <msp430.h>
+
 #include "CLK_RTC_setup.h"
 #include "powerControl.h"
 #include "LevelMeasure.h"
@@ -12,9 +13,9 @@
 
 #define LengthOfSensordata 30
 
-// Global flags...
-int loop1 = 0;
+// used for change operation mode
 int loopChange = 20;
+int loopChange2 = 10;
 char loop2Mode = '0';
 char startMode = '1';
 
@@ -31,9 +32,9 @@ int main(void) {
 	pinGSM();
 //	clkDebug();
 
-    // Start-Up
-	char startMode = '1';
-	char execution = '0';
+	// test
+	V4Stop();
+	V5Stop();
 
 	// Sensor variables
 	int sensorValue = 0;
@@ -41,37 +42,48 @@ int main(void) {
 	char dataEnable = 0; 		// != 0 if the vector is filled ones
 	int dataPosition = 0;
 	int overflowCount = 0;
+	char alarm = '0';
 
-	// Parameters
+	// Parameters (From and to the flash)
 	int lowerThresholds = 0;
-	int upperThresholds = 0;
-	int normalLvl = 0;
+	int upperThresholds = 5;
+	int normalLvl = 40;			// Default higth over the water lvl
 
 	// GSM decision variable
+	char execution = '0';
 
-	V5Start(); // enable power for sensor
-	V4Start(); // Enable power to GSM
-	__delay_cycles(800000);
-	pwrOn();
+	// RTC variable
+	unsigned int rtcOffsetH;
+	unsigned int rtcOffsetL;
 
 	__enable_interrupt();
 
 	while(1)
 	{
 		V5Start();
+
 		if(loop2Mode == '1' || startMode == '1')
 		{	// Power on the GSM regulator
-			// pwrOn(); // if GSM off
+//			if (/*GSM out of power*/)
+//			{
+				V4Start(); 	// Enable power to GSM
+				pwrOn(); 	// if GSM off
+//			}
+//			else if (/*GSM not activated */)
+//			{
+//				pwrOn();
+//			}
 		}
 
+		__delay_cycles(800000);
 		sensorValue = mainFunctionSensor(sensorData, LengthOfSensordata, &dataPosition, &dataEnable, &overflowCount);
 
 		if (loop2Mode == '1' || startMode == '1')
 		{	// wait for connection and check if SMS
-			execution = readSMS();
+		//	execution = readSMS();
 			if (execution == '0')
 			{	// Nothing
-				break;
+				_no_operation();// test
 			}
 			else if (execution == 'S')
 			{	// Status report
@@ -106,49 +118,31 @@ int main(void) {
 
 		if (dataEnable != 0 && overflowCount == 0)
 		{	// Process the sensor value
-			//evaluateData();
-			sensorValue = normalLvl - sensorValue ;
-			int absValue = fabs(sensorValue);
-			if (sensorValue > 0)
-			{	// Check if over normal the normal lvl
-				if (absValue > upperThresholds)
-				{	// Send alarm for high water lvl
-
-				}
-				else if (absValue > (upperThresholds)/2)
-				{	// Change RTC mode parameter
-
-				}
-				else if (absValue > (upperThresholds)/3)
-				{	// Change RTC mode parameter
-
-				}
-				else ;
-			}
-			else if (sensorValue < 0)
-			{	// Check if under the normal lvl
-				if (absValue > lowerThresholds)
-				{ // send alarm for low water lvl
-
-				}
-				else if (absValue > (lowerThresholds)/2)
-				{	// Change RTC mode parameter
-
-				}
-				else if (absValue > (lowerThresholds)/3)
-				{	// Change RTC mode parameter
-
-				}
-				else ;
-			}
-			else if (overflowCount > 5)
-			{	// Alarm overflow (Problem om man minskar RTC och något ligger ivägen!!!!)
-
-			}
-			else {}
+			alarm = evaluateData(sensorValue, normalLvl, upperThresholds, lowerThresholds, &rtcOffsetH, &rtcOffsetL);
 		}
+		else if (overflowCount > 10)
+		{	// Alarm overflow (Problem om man minskar RTC och något ligger ivägen!!!!)
+			alarm = 'O';
+		}
+		else
+		{}
 
-		rtcStart();
+		if (alarm != '0')
+		{
+			if (alarm == '+')
+			{	// Alarm for high water lvl
+
+			}
+			else if (alarm == '-')
+			{	// Alarm for low water lvl
+
+			}
+			else if (alarm == 'O')
+			{	// Alarm for overflow
+
+			}
+		}
+		rtcStart(rtcOffsetH, rtcOffsetL);
 	}
 }
 
@@ -156,12 +150,12 @@ int main(void) {
 __interrupt void USCI_A1_ISR(void)
 {
 	 switch(UCA1IV){
-	    case 0:break;             // Vector 0 - no interrupt
-	    case 2:                   // Vector 2 - RXIF
+	    case 0:break;             	// Vector 0 - no interrupt
+	    case 2:                   	// Vector 2 - RXIF
 	    	  uartRead(UCA1RXBUF);
 	    	  UCA1IFG &= ~UCRXIFG;
 	        break;
-	    case 4:                 // Vector 4 - TXIFG
+	    case 4:                 	// Vector 4 - TXIFG
 	        break;
 	    default: break;
     }

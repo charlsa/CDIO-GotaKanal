@@ -26,7 +26,7 @@ int EdgeCount;
 
 unsigned int measure();
 
-int mainFunctionSensor(unsigned int data[], int dataLength, int* position, char* dataEnable, int* overflowCount);
+int mainFunctionSensor(int data[], int dataLength, int* position, char* dataEnable, int* overflowCount);
 
 void sortData(unsigned int data[], int length);
 
@@ -40,9 +40,11 @@ void triggerPulse();
 
 void echo();
 
-void SensorCalc(int* dist);
+void SensorCalc(unsigned int* dist);
 
 unsigned int meanMeasurement(int length, unsigned int data[], int* pos, int number);
+
+char evaluateData(int data, int normal, int upper, int lower, unsigned int* rtcTimeH, unsigned int* rtcTimeL);
 
 __interrupt void CCR1_ISR(void);
 

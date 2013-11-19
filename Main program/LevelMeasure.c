@@ -6,7 +6,8 @@
  */
 #include "LevelMeasure.h"
 
-void directionSetup(){
+void directionSetup()
+{
 	 trigPin_DIR |= trigPin_nr;					// Set output direction
 	 trigPin &= ~trigPin_nr;					// Set pin low
 
@@ -14,30 +15,25 @@ void directionSetup(){
 	 P1SEL = ECHO;								// set P1.2 to TA0
 }
 
-int mainFunctionSensor(unsigned int vector[], int dataLength, int* position, char* dataEnable, int* overflowCount)
-{
-	int value = measure();
+int mainFunctionSensor(int vector[], int dataLength, int* position, char* dataEnable, int* overflowCount)
+{	// Temporary variabler to be able to use references
 	unsigned int meanValue;
 	int tmp_pos = *position;
 	int tmp_overf = *overflowCount;
 	char tmp_enable = *dataEnable;
 
-	if(value != 0)
-	{
-		vector[tmp_pos] = value;
+	int value = measure(); 						// Make a measure ment with the ultra sonic sensor
 
-		if(tmp_pos > 5 || tmp_enable != 0)
-		{
-			meanValue = meanMeasurement(dataLength, vector, &tmp_pos, 5); // 5 = nr of meas in the mean value
-		}
-		else
-		{}
+	if(value != 0)
+	{	// if not a overflow
+		vector[tmp_pos] = value;				// store in data vector in main
 
 		if(tmp_pos == 29)
-		{
+		{	// When 30 values are stored, reset vector position.
 			*position = 0;
 		}
-		else if(tmp_pos == 5 && tmp_enable == 0){
+		else if(tmp_pos == 5 && tmp_enable == 0)
+		{	// Set dataEnable to insure that a mean value can be taken even if the position has been reseted
 			tmp_enable = '1';
 			*dataEnable = tmp_enable;
 		}
@@ -46,6 +42,14 @@ int mainFunctionSensor(unsigned int vector[], int dataLength, int* position, cha
 			tmp_pos++;
 			*position = tmp_pos;
 		}
+
+		if(tmp_pos > 5 || tmp_enable != 0)
+		{	// If more than 5 values stored take mean value of the 5 last. (Maybe changed later)
+			meanValue = meanMeasurement(dataLength, vector, &tmp_pos, 5);
+		}
+		else
+		{}
+
 		tmp_overf = 0;
 		*overflowCount = tmp_overf;
 	}
@@ -57,14 +61,11 @@ int mainFunctionSensor(unsigned int vector[], int dataLength, int* position, cha
 	return meanValue;
 }
 
-
-////////////////Funktionen mÃ¤ter 10 vÃ¤rden och sparar i lokala vecktorn "data"
-//////////////// datavektorn sorteras efter storleksordning
 unsigned int measure()
-{
+{	// Measures 10 values and store them in data, data is then sorted by size
 	unsigned int data[DataLength];
-//	unsigned int data;
 	int i = 0, j=0;
+
 	while(i < DataLength){
 		triggerPulse();
 		echo();
@@ -85,7 +86,7 @@ unsigned int measure()
 }
 
 int pickvalue(unsigned int data[], int length)
-{
+{	// Pick ...
 	int countend = 0;
 	int countstart = 0;
 	int g = 0;
@@ -116,89 +117,150 @@ int pickvalue(unsigned int data[], int length)
 }
 
 
-void sortData(unsigned int data[], int length){
+void sortData(unsigned int data[], int length)
+{
     int i, j, tmp;
-    for(j = 1; j < length; j++)    // Start with 1 (not 0)
+    for(j = 1; j < length; j++)    							// Start with 1 (not 0)
     {
     	tmp = data[j];
-    	for(i = j - 1; (i >= 0) && (data[i] < tmp); i--)   // Smaller values move up
+    	for(i = j - 1; (i >= 0) && (data[i] < tmp); i--)	// Smaller values move up
         {
     		data[i+1] = data[i];
         }
-        data[i+1] = tmp;    //Put key into its proper location
+        data[i+1] = tmp;    								//Put key into its proper location
     }
 }
 
-void timerA0Setup(){
-	 TA0CTL = TASSEL_2 + MC_0 + ID_0 + TACLR; 			// SMCLK, stop, div8, clearTAR, interrupt enable
-	 TA0CCTL1 = CM_3 + CCIS_0 + CAP + SCCI;								// Capturer mode pos/neg flank, P1.2 input
+void timerA0Setup()
+{
+	 TA0CTL = TASSEL_2 + MC_0 + ID_0 + TACLR; 				// SMCLK, stop, clearTAR, interrupt enable
+	 TA0CCTL1 = CM_3 + CCIS_0 + CAP + SCCI;					// Capturer mode pos/neg flank, P1.2 input
 }
 
-void interuptPin(){ // debuging button
-	P2DIR |= BIT6;
-	P2OUT |= BIT6;		// Set pullup for button
-}
-
-void triggerPulse(){
+void triggerPulse()
+{
 	/*
 	 * Generate a 12.2 us pulse to trig the ultrasonic sensor
 	 * The cycle delay is calculated by
-	 * f_mclk*Pulse_time = (8 MHz)*(10 us) = 80 cyckes
+	 * f_mclk*Pulse_time = (1 MHz)*(10 us) = 10 cyckes
 	 */
 	trigPin ^= trigPin_nr;
 	__delay_cycles(20);
 	trigPin ^= trigPin_nr;
 }
 
-void echo(){
+void echo()
+{
 	/* 
-	 * Startar timer i capture mode och vÃ¤ntar pÃ¥ tvÃ¥ interruptflanker	
-	 * Tiden mellan flankerna sparas i variabeln sonic echo
+	 * Starts timer in capture mode and waits on two interrupts.
+	 * The timer start on the positive flank and ends on the negative.
+	 * The time between the two flanks is stored in SonicEcho
+	 * EdgeCount is used to insure 2 flanks
 	 */
 	EdgeCount = 0;
 	SonicEcho = 0;
 	TA0CCTL1 &= ~CCIFG;
-	TA0CTL |= MC_2; 			// start continius mode
-	TA0CTL &= ~TAIFG;			// Reset TA1 interrupt/owerflowflag
-	TA0CCTL1 |= CCIE;
+	TA0CTL |= MC_2; 			// Start continius mode
+	TA0CTL &= ~TAIFG;			// Reset TA1 interrupt/overflow flag
+	TA0CCTL1 |= CCIE;			// Enable interrupt
 	TA0R = 0x0000; 				// Reset timer
 
-	while((TA0R < 0x9C40)); 	// Wait for timer to count to 9C40 = 40ms
+	while((TA0R < 0x9C40)); 	// Wait for timer to count to 9C40 = 40ms = max time
 	TA0R = 0x0000;
 	TA0CCTL1 &= ~CCIE;			// Disable catch interrupt
 }
 
-void SensorCalc(int* dist){
-	//Converts the pulse width of the measuring echo
+void SensorCalc(unsigned int* dist)
+{	//	Converts the pulse width of the measuring echo to distance
 	*dist = (SonicEcho/58);
 }
 
-unsigned int meanMeasurement(int length, unsigned int data[], int* pos, int number){
+unsigned int meanMeasurement(int length, unsigned int data[], int* pos, int number)
+{
 	unsigned int sum = 0;
 	int tmp = *pos;
 
-	if(tmp < (number-1)){
-		int a = (number-1)-tmp; // ex 4-2 = 2 nr of numbers from the top of the vector
-
+	if(tmp < (number-1))
+	{ 	//	If position smaller than 5, ex 4-2 = 2 nr of numbers from the top of the vector
+		int a = (number-1)-tmp;
 		while(a != 0)
 		{
 			sum += data[tmp--];
 		}
-
 		while((length-1-tmp) != length-tmp)
 		{ // pos = 0 and loop to tmp
 			sum += data[(length-1-tmp)];
 			tmp++;
 		}
 	}
-	else{
+	else
+	{
 		int endPos = (tmp-number);
-
-		while (tmp != endPos){
+		while (tmp != endPos)
+		{
 			sum += data[tmp--];
 		}
 	}
 	return sum/number;
+}
+
+char evaluateData(int data, int normal, int upper, int lower, unsigned int* rtcTimerH, unsigned int* rtcTimerL)
+{
+	data = normal - data;
+	int absValue = fabs(data);
+	_no_operation(); 	// test
+	if (data > 0)
+	{	// Check if over normal the normal lvl
+		if (absValue > upper)
+		{	// Send alarm for high water lvl
+			return '+';
+		}
+		else if (absValue > (upper)/2)
+		{	// Change RTC mode parameter
+			*rtcTimerL = 0xFFF0;
+			*rtcTimerH = 0xFF00;
+			return '0';
+		}
+		else if (absValue > (upper)/3)
+		{	// Change RTC mode parameter
+			*rtcTimerL = 0xFFF0;
+			*rtcTimerH = 0xFFF0;
+			return '0';
+		}
+		else
+		{
+			return '0';
+		}
+	}
+	else if (data < 0)
+	{	// Check if under the normal lvl
+		if (absValue > lower)
+		{ // send alarm for low water lvl
+			_no_operation();// test
+			return '-';
+		}
+		else if (absValue > (lower)/2)
+		{	// Change RTC mode parameter
+			*rtcTimerL = 0xFFF0;
+			*rtcTimerH = 0xFF00;
+			return '0';
+		}
+		else if (absValue > (lower)/3)
+		{	// Change RTC mode parameter
+			*rtcTimerL = 0xFFF0;
+			*rtcTimerH = 0xFFF0;
+			return '0';
+		}
+		else
+		{
+			return '0';
+		}
+	}
+	else
+	{
+		return '0';
+	}
+
 }
 
 #pragma vector=TIMER0_A1_VECTOR
@@ -213,7 +275,5 @@ __interrupt void CCR1_ISR(void)
 	{
 		SonicEcho = TA0CCR1 - SonicEcho;
 	}
-
 	TA0CCTL1 &= ~CCIFG;			// Clear catch interruptflag
-
 }

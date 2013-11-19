@@ -10,13 +10,19 @@
 
 #include <msp430.h>
 
+// Global flags...
+extern int loopChange;
+extern int loopChange2;
+extern char loop2Mode;
+extern char startMode;
+
 void clkDebug();
 
 void clkSetup();
 
 void rtcSetup();
 
-void rtcStart();
+void rtcStart(unsigned int rtcOffsetH, unsigned int rtcOffsetL);
 
 void rtcStop();
 
