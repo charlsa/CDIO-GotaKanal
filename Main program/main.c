@@ -19,6 +19,18 @@ int loopChange2 = 10;
 char loop2Mode = '0';
 char startMode = '1';
 
+void startGSM()
+{
+//	int statusGSM = P8IN;
+//	statusGSM &= BIT4;
+	if (!(statusGSM &~ BIT4))	/*GSM out of power*/
+	{
+		V5Start();
+		V4Start(); 	// Enable power to GSM
+		pwrOn(); 	// if GSM off
+	}
+}
+
 int main(void) {
     WDTCTL = WDTPW | WDTHOLD;	// Stop watchdog timer
 
@@ -51,10 +63,12 @@ int main(void) {
 
 	// GSM decision variable
 	char execution = '0';
+	char disableAlarmFlag = '0';	// Disable = 1
+	char timerAlarmFlag = '0';		// Enable = 1
 
-	// RTC variable
-	unsigned int rtcOffsetH;
-	unsigned int rtcOffsetL;
+	// RTC variable time offset1 = 1 min
+	unsigned int rtcOffsetH = 0xFC6C;
+	unsigned int rtcOffsetL = 0x78FF;
 
 	__enable_interrupt();
 
@@ -64,23 +78,31 @@ int main(void) {
 
 		if(loop2Mode == '1' || startMode == '1')
 		{	// Power on the GSM regulator
-//			if (/*GSM out of power*/)
-//			{
+			int statusGSM = P8IN;
+			statusGSM &= BIT4;
+			if (!(statusGSM &~ BIT4))	/*GSM out of power*/
+			{
 				V4Start(); 	// Enable power to GSM
 				pwrOn(); 	// if GSM off
-//			}
-//			else if (/*GSM not activated */)
-//			{
-//				pwrOn();
-//			}
+			}
+
 		}
 
-		__delay_cycles(800000);
 		sensorValue = mainFunctionSensor(sensorData, LengthOfSensordata, &dataPosition, &dataEnable, &overflowCount);
 
 		if (loop2Mode == '1' || startMode == '1')
 		{	// wait for connection and check if SMS
-		//	execution = readSMS();
+			unsigned int i = 0;
+	//		int statusGSM = P8IN;
+	//		statusGSM &= BIT4;
+
+			while (P8IN &~ BIT4 || i++ < 99) // Debug
+			{	// Wait until GSM status goes high or in 3 seconds. (change to timer...)
+				__delay_cycles(3000);
+	//			statusGSM = P8IN;
+	//			statusGSM &= BIT4;
+			}
+			execution = readSMS();
 			if (execution == '0')
 			{	// Nothing
 				_no_operation();// test
@@ -109,6 +131,10 @@ int main(void) {
 			{	// Disable SMS
 
 			}
+			else if (execution == 'A')
+			{	// Disable SMS with when alarm
+				disableAlarmFlag = '1';		// Reseted when the lvl goes back to normal.
+			}
 			else
 			{	/* Nothing */	}
 		}
@@ -129,18 +155,37 @@ int main(void) {
 
 		if (alarm != '0')
 		{
+			startGSM();
+			unsigned int i = 0;
+	//		int statusGSM = P8IN;
+	//		statusGSM &= BIT4;
+
+			while (P8IN &~ BIT4 || i++ < 99) // Debug
+			{	// Wait until GSM status goes high or in 3 seconds. (change to timer...)
+				__delay_cycles(3000);
+	//			statusGSM = P8IN;
+	//			statusGSM &= BIT4;
+			}
+
 			if (alarm == '+')
 			{	// Alarm for high water lvl
-
+				if (disableAlarmFlag != '1');
 			}
 			else if (alarm == '-')
 			{	// Alarm for low water lvl
-
+				if (disableAlarmFlag != '1' && timerAlarmFlag == '1');
 			}
 			else if (alarm == 'O')
 			{	// Alarm for overflow
-
+				if (disableAlarmFlag != '1' && timerAlarmFlag == '1');
 			}
+		}
+		else if (alarm == '0' && timerAlarmFlag == '1')
+		{	// return to
+			timerAlarmFlag = '0';
+			// RTC for Repeat alarm
+			// Send sms
+
 		}
 		rtcStart(rtcOffsetH, rtcOffsetL);
 	}

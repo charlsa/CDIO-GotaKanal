@@ -140,7 +140,7 @@ void timerA0Setup()
 void triggerPulse()
 {
 	/*
-	 * Generate a 12.2 us pulse to trig the ultrasonic sensor
+	 * Generate a 12.2 us pulse to trig the ultra sonic sensor
 	 * The cycle delay is calculated by
 	 * f_mclk*Pulse_time = (1 MHz)*(10 us) = 10 cyckes
 	 */
@@ -175,7 +175,7 @@ void SensorCalc(unsigned int* dist)
 	*dist = (SonicEcho/58);
 }
 
-unsigned int meanMeasurement(int length, unsigned int data[], int* pos, int number)
+unsigned int meanMeasurement(int length, int data[], int* pos, int number)
 {
 	unsigned int sum = 0;
 	int tmp = *pos;
@@ -213,18 +213,24 @@ char evaluateData(int data, int normal, int upper, int lower, unsigned int* rtcT
 	{	// Check if over normal the normal lvl
 		if (absValue > upper)
 		{	// Send alarm for high water lvl
+			*rtcTimerL = 0x78FF;
+			*rtcTimerH = 0xFC6C;
 			return '+';
+		}
+		else if ()
+		{
+
 		}
 		else if (absValue > (upper)/2)
 		{	// Change RTC mode parameter
-			*rtcTimerL = 0xFFF0;
-			*rtcTimerH = 0xFF00;
+			*rtcTimerL = 0x6AFF;
+			*rtcTimerH = 0xF545;
 			return '0';
 		}
 		else if (absValue > (upper)/3)
 		{	// Change RTC mode parameter
-			*rtcTimerL = 0xFFF0;
-			*rtcTimerH = 0xFFF0;
+			*rtcTimerL = 0xC7FF;
+			*rtcTimerH = 0xE363;
 			return '0';
 		}
 		else
@@ -237,18 +243,24 @@ char evaluateData(int data, int normal, int upper, int lower, unsigned int* rtcT
 		if (absValue > lower)
 		{ // send alarm for low water lvl
 			_no_operation();// test
+			*rtcTimerL = 0x78FF;
+			*rtcTimerH = 0xFC6C;
 			return '-';
 		}
+		else if ()
+		{
+
+		}
 		else if (absValue > (lower)/2)
-		{	// Change RTC mode parameter
-			*rtcTimerL = 0xFFF0;
-			*rtcTimerH = 0xFF00;
+		{	// Change RTC mode parameter time offset2 = 3 min
+			*rtcTimerL = 0x6AFF;
+			*rtcTimerH = 0xF545;
 			return '0';
 		}
 		else if (absValue > (lower)/3)
-		{	// Change RTC mode parameter
-			*rtcTimerL = 0xFFF0;
-			*rtcTimerH = 0xFFF0;
+		{	// Change RTC mode parameter time offset3 = 8 min
+			*rtcTimerL = 0xC7FF;
+			*rtcTimerH = 0xE363;
 			return '0';
 		}
 		else

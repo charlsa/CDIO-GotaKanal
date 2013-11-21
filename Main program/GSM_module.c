@@ -45,6 +45,7 @@ char newToleranceResp[]="New tolerance:";
 // Initiating the GSM module
 void pinGSM(){
 	P4DIR |= BIT2;
+	P8DIR &= ~BIT4; 	// Status pin input
 }
 
 void initGSM(void)

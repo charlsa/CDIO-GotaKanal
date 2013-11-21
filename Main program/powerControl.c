@@ -7,10 +7,10 @@
 #include "powerControl.h"
 
 void powerPinSetup(){
-	P4DIR |= BIT0 + BIT1; 	// Bit1 5V and Bit0 4.1V
-	P3DIR |= BIT0;			// SHND Charger
+	P8DIR |= BIT0 + BIT1 + BIT5; 	// Bit0 = 4.1V, Bit1 = 5V and Bit5 = second GSM
+	P3DIR |= BIT0;					// SHND Charger
 
-	P6DIR &= 0x00;			// DIP1 = P6.0
+	P6DIR &= 0x00;					// DIP1 = P6.0
 }
 
 void chargerStart(){
@@ -27,6 +27,14 @@ void V4Start(){
 
 void V4Stop(){
 	P4OUT &= ~BIT0;
+}
+
+void tmpvV4Start(){
+	P8OUT |= BIT5;
+}
+
+void tmpvV4Stop(){
+	P8OUT &= ~BIT5;
 }
 
 void V5Start(){

@@ -13,6 +13,8 @@
 
 extern const char ATResponseOK[];
 // Initiating the GSM module
+void pinGSM();
+
 void initGSM(void);
 
 // Sends AT command to Tx buffer

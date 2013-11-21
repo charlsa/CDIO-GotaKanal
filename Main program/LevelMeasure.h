@@ -30,6 +30,8 @@ int mainFunctionSensor(int data[], int dataLength, int* position, char* dataEnab
 
 void sortData(unsigned int data[], int length);
 
+int pickvalue(unsigned int data[], int length);
+
 void directionSetup();
 
 void timerA0Setup();
@@ -42,7 +44,7 @@ void echo();
 
 void SensorCalc(unsigned int* dist);
 
-unsigned int meanMeasurement(int length, unsigned int data[], int* pos, int number);
+unsigned int meanMeasurement(int length, int data[], int* pos, int number);
 
 char evaluateData(int data, int normal, int upper, int lower, unsigned int* rtcTimeH, unsigned int* rtcTimeL);
 
