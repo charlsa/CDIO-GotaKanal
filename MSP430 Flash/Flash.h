@@ -9,17 +9,24 @@
 #define FLASH_H_
 
 // Writes Position to flash segment D max length = 30 chars
-void writePosition(char Value[]);
-// Reads position from flash segment D. buffer arrayen fylls med chars och avslutas med # 
-char readPosition(char* buffer);
+void writeFlashPosition(char Value[]);
+// Reads position from flash segment D
+char readFlashPosition(char* buffer);
 
-void writeTolerance(int value);
+void writeFlashTolerance(int lowTolerance,int highTolerance);
 
-void writeSensorHight(int value);
+int readFlashLowTolerance();
 
-int readTolerance();
+int readFlashHighTolerance();
 
-int readSensorHight();
+void writeFlashSensorOffset(int value);
+
+int readFlashSensorOffset();
+
+void writeFlashTele(char Value[],int index);
+
+char readFlashTele(char* buffer, int index);
+
 
 
 
