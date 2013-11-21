@@ -132,8 +132,13 @@ int main(void) {
 
 			}
 			else if (execution == 'A')
+<<<<<<< HEAD
 			{	// Disable SMS with when alarm
 				disableAlarmFlag = '1';		// Reseted when the lvl goes back to normal.
+=======
+			{	// Set flag to stop alarm
+				
+>>>>>>> dcc62945a97671e90585ffd30bcb84aac8306818
 			}
 			else
 			{	/* Nothing */	}
@@ -147,7 +152,7 @@ int main(void) {
 			alarm = evaluateData(sensorValue, normalLvl, upperThresholds, lowerThresholds, &rtcOffsetH, &rtcOffsetL);
 		}
 		else if (overflowCount > 10)
-		{	// Alarm overflow (Problem om man minskar RTC och något ligger ivägen!!!!)
+		{	// Alarm overflow (Problem om man minskar RTC och nï¿½got ligger ivï¿½gen!!!!)
 			alarm = 'O';
 		}
 		else
