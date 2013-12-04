@@ -72,4 +72,17 @@ char uart_is_tx_clear(void)
 	return UCA1IFG &= UCTXIFG; 				// Dummy function that might be interesting but I gonna fix this with UCA1IFG &= UCTXIFG
 }
 
-
+#pragma vector=USCI_A1_VECTOR
+__interrupt void USCI_A1_ISR(void)
+{
+    switch(UCA1IV){
+	    case 0:break;             	// Vector 0 - no interrupt
+	    case 2:                   	// Vector 2 - RXIF
+            uartRead(UCA1RXBUF);
+            UCA1IFG &= ~UCRXIFG;
+	        break;
+	    case 4:                 	// Vector 4 - TXIFG
+	        break;
+	    default: break;
+    }
+}

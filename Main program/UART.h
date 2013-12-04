@@ -31,5 +31,6 @@ void uartDisable(void);
 int uartSendAvailable(void);
 char uart_is_tx_clear(void);
 
-#endif /* UART_H_ */
+__interrupt void USCI_A1_ISR(void);
 
+#endif /* UART_H_ */

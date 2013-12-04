@@ -27,7 +27,7 @@ int main(void) {
     clkSetup();
     directionSetup();
     timerA0Setup();
-    powerPinSetup();
+    boardSetup();
     rtcSetup();
 	initUART();
 	pinGSM();
@@ -73,7 +73,6 @@ int main(void) {
 		{	// Power on the GSM regulator
 //			int statusGSM = P8IN;
 //			statusGSM &= BIT4;
-			_no_operation();	// test
 		//	if (!(P8IN &~ BIT4))	/*GSM out of power*/
 		//	{
 				V4Start(); 	// Enable power to GSM
@@ -97,11 +96,9 @@ int main(void) {
 			initGSM();
 			execution = readSMS();
 
-			_no_operation();	// test
 			if (execution == '0')
 			{	// Nothing
-				//deleteSMS();
-				_no_operation();// test
+
 			}
 			else if (execution == 'S')
 			{	// Status report
@@ -144,7 +141,6 @@ int main(void) {
 			else
 			{	/* Nothing */	}
 		}
-		_no_operation();// test
 
 		// if the GSM mode disable turn of the power
 		if (loop2Mode != '1' && startMode != '1') V5Stop();
@@ -159,7 +155,7 @@ int main(void) {
 		}
 		else
 		{}
-		_no_operation();
+
 		if (alarm != '0')
 		{
 			startGSMmodule();		// Change name to power blablabal
@@ -170,7 +166,6 @@ int main(void) {
 //			while (P8IN &~ BIT4 || i++ < 99) // Debug  Variable for att inte sicka vid i owf
 			//			{	// Wait until GSM status goes high or in 3 seconds. (change to timer...)
 				__delay_cycles(3000);
-				_no_operation();	// test
 	//			statusGSM = P8IN;
 	//			statusGSM &= BIT4;
 				//	}
@@ -179,7 +174,7 @@ int main(void) {
 			{	// Alarm for high water lvl
 				if (disableAlarmFlag != '1' && timerAlarmFlag == '1')
 				{
-					sendAlarm("Hog vattneniva: ", (normalLvl-sensorValue));
+				//	sendAlarm("Hog vattneniva: ", (normalLvl-sensorValue));
 					timerAlarmFlag = '0';
 				}
 			}
@@ -187,22 +182,26 @@ int main(void) {
 			{	// Alarm for low water lvl
 				if (disableAlarmFlag != '1' && timerAlarmFlag == '1')
 				{
-					sendAlarm("Lag vattneniva: ", (sensorValue-normalLvl));
+				//	sendAlarm("Lag vattneniva: ", (sensorValue-normalLvl));
 					timerAlarmFlag = '0';
 				}
 			}
 			else if (alarm == 'O')
 			{	// Alarm for overflow
-				sendSMS("Sensor kan vara ur funktion");
-				timerAlarmFlag = '0';
+				if (timerAlarmFlag == '1')
+				{
+					sendSMS("Sensor kan vara ur funktion");
+					timerAlarmFlag = '0';
+				}
 			}
 
 		}
-		else if (alarm == '0' && timerAlarmFlag == '1')
+		else if (alarm == '0' && timerAlarmFlag == '0')
 		{	// return to normal mode
 			disableAlarmFlag = '0';
-			// RTC for Repeat alarm
-			// Send sms
+			sendSMS("Vattennivan har atergott");
+			timerAlarmFlag = '1';
+			disableAlarmFlag = '0';
 		}
 		rtcStart(rtcOffsetH, rtcOffsetL);
 	}

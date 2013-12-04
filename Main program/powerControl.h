@@ -10,9 +10,9 @@
 
 #include <msp430.h>
 
-void powerPinSetup();
+void boardSetup();
 
-void chargerStart();
+void startCharger();
 
 void stopCharger();
 
@@ -26,5 +26,6 @@ void V5Stop();
 
 void startGSMmodule();
 
+void readDip();
 
 #endif /* POWERCONTROL_H_ */

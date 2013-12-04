@@ -6,14 +6,15 @@
  */
 #include "powerControl.h"
 
-void powerPinSetup(){
+void boardSetup(){
 	P4DIR |= BIT0 + BIT1 + BIT5; 	// Bit0 = 4.1V, Bit1 = 5V and Bit5 = second GSM
 	P3DIR |= BIT0;					// SHND Charger
 
-	P6DIR &= 0x00;					// DIP1 = P6.0
+	P6DIR = 0x00;	// Dip input
+	P10DIR = 0xFF; 	// Dip Power
 }
 
-void chargerStart(){
+void startCharger(){
 	P3OUT |= BIT0;
 }
 
@@ -45,9 +46,63 @@ void V5Stop(){
 	P4OUT &= ~BIT1;
 }
 
-char readDIP(){
-	char DIP = P6IN;
-	return DIP;
+void readDip(){
+
+ //	P10OUT = 0xFF;	// Turn on Dip power
+	char *positions[10];
+	positions[0] = "Projektrummet";
+	positions[1] = "Borensberg";
+	positions[2] = "Heda";
+	positions[3] = "Ruda";
+	positions[4] = "Soderkoping";
+	positions[5] = "Boren";
+	positions[6] = "Roxen";
+	positions[7] = "karlsborg";
+	positions[8] = "Bergsgasthamn";
+	positions[9] = "BergBorn";
+
+	if(P6IN == 0x00)
+	{		//(00000000)  Vänster bit = bit1 på dip switch, (Läser Dip)
+		writeFlashPosition(positions[0]);
+	}
+	if(P6IN == 0x01)
+	{		//(10000000)
+		writeFlashPosition(positions[1]);
+	}
+	if(P6IN == 0x02)
+	{		//(01000000)
+		writeFlashPosition(positions[2]);
+	}
+	if(P6IN == 0x04)
+	{		//(00100000)
+		writeFlashPosition(positions[3]);
+	}
+	if(P6IN == 0x08)
+	{		//(00010000)
+		writeFlashPosition(positions[4]);
+	}
+	if(P6IN == 0x30)
+	{		//(00001000)
+		writeFlashPosition(positions[5]);
+	}
+	if(P6IN == 0x20)
+	{		//(00000100)
+		writeFlashPosition(positions[6]);
+	}
+	if(P6IN == 0x40)
+	{		//(00000010)
+		writeFlashPosition(positions[7]);
+	}
+	if(P6IN == 0x80)
+	{		//(00000001)
+		writeFlashPosition(positions[8]);
+	}
+	if(P6IN == 0x03)
+	{		//(11000000)
+		writeFlashPosition(positions[9]);
+	}
+		//etc, kommer behövas fylla på med positioner
+// 	P10OUT = 0x00;		// Turn off dip powe
 }
 
 void startGSMmodule(){
