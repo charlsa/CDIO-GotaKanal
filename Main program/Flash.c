@@ -240,7 +240,7 @@ void writeFlashTele(char Value[],int index)
 
 
 
-char readFlashTele(char* buffer)
+void readFlashTele(char* buffer)
 {
 	int Length = 15;
 	int j = 0;
