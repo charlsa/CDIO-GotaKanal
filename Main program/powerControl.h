@@ -24,6 +24,7 @@ void V5Start();
 
 void V5Stop();
 
-void readDip();
+void startGSMmodule();
+
 
 #endif /* POWERCONTROL_H_ */

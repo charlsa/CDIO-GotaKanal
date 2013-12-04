@@ -19,7 +19,7 @@ extern char uartRxBuf[UART_RX_BUF_LEN];
 
 
 void initUART(void);
-void uartSend(int len, char vec);
+void uartSend(char vec);
 void uartRead(char a);
 void Delay(void);
 

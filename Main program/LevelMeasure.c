@@ -5,6 +5,8 @@
  *      Author: hej
  */
 #include "LevelMeasure.h"
+int loopChange = 100;
+int loopChange2 = 5;
 
 void directionSetup()
 {
@@ -49,7 +51,6 @@ int mainFunctionSensor(int vector[], int dataLength, int* position, char* dataEn
 		}
 		else
 		{}
-
 		tmp_overf = 0;
 		*overflowCount = tmp_overf;
 	}
@@ -145,7 +146,7 @@ void triggerPulse()
 	 * f_mclk*Pulse_time = (1 MHz)*(10 us) = 10 cyckes
 	 */
 	trigPin ^= trigPin_nr;
-	__delay_cycles(20);
+	__delay_cycles(30);
 	trigPin ^= trigPin_nr;
 }
 
@@ -181,11 +182,13 @@ unsigned int meanMeasurement(int length, int data[], int* pos, int number)
 	int tmp = *pos;
 
 	if(tmp < (number-1))
-	{ 	//	If position smaller than 5, ex 4-2 = 2 nr of numbers from the top of the vector
+	{ 	//	If position smaller than 5, ex 4-2 = 2 nr of numbers from the top of the vector // Debugga
 		int a = (number-1)-tmp;
-		while(a != 0)
+		length -= 1;
+		while(a != ((number-1)))
 		{
 			sum += data[tmp--];
+			a -= tmp;
 		}
 		while((length-1-tmp) != length-tmp)
 		{ // pos = 0 and loop to tmp
@@ -196,9 +199,10 @@ unsigned int meanMeasurement(int length, int data[], int* pos, int number)
 	else
 	{
 		int endPos = (tmp-number);
-		while (tmp != endPos)
+		while (tmp != (endPos)) 	// Get the last value
 		{
-			sum += data[tmp--];
+			sum += data[tmp];
+			tmp--;
 		}
 	}
 	return sum/number;
@@ -215,22 +219,28 @@ char evaluateData(int data, int normal, int upper, int lower, unsigned int* rtcT
 		{	// Send alarm for high water lvl
 			*rtcTimerL = 0x78FF;
 			*rtcTimerH = 0xFC6C;
+			loopChange = 100;
+			loopChange2 = 5;
 			return '+';
 		}
-		else if ()
-		{
-
+		else if (absValue > 3*lower/4)
+		{	// Used to return from alarm
+			return '0';
 		}
 		else if (absValue > (upper)/2)
 		{	// Change RTC mode parameter
 			*rtcTimerL = 0x6AFF;
 			*rtcTimerH = 0xF545;
+			loopChange = 38;
+			loopChange2 = 2;
 			return '0';
 		}
 		else if (absValue > (upper)/3)
 		{	// Change RTC mode parameter
 			*rtcTimerL = 0xC7FF;
 			*rtcTimerH = 0xE363;
+			loopChange = 15;
+			loopChange2 = 1;
 			return '0';
 		}
 		else
@@ -245,22 +255,29 @@ char evaluateData(int data, int normal, int upper, int lower, unsigned int* rtcT
 			_no_operation();// test
 			*rtcTimerL = 0x78FF;
 			*rtcTimerH = 0xFC6C;
+			loopChange = 100;
+			loopChange2 = 5;
 			return '-';
 		}
-		else if ()
-		{
-
+		else if (absValue > 3*lower/4)
+		{	// Used to return form alarm
+			_no_operation(); // test
+			return '0';
 		}
 		else if (absValue > (lower)/2)
 		{	// Change RTC mode parameter time offset2 = 3 min
 			*rtcTimerL = 0x6AFF;
 			*rtcTimerH = 0xF545;
+			loopChange = 38;
+			loopChange2 = 2;
 			return '0';
 		}
 		else if (absValue > (lower)/3)
 		{	// Change RTC mode parameter time offset3 = 8 min
 			*rtcTimerL = 0xC7FF;
 			*rtcTimerH = 0xE363;
+			loopChange = 15;
+			loopChange2 = 1;
 			return '0';
 		}
 		else

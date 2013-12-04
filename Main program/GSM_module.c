@@ -8,7 +8,7 @@
 #include <msp430.h>
 #include "GSM_module.h"
 #include "UART.h"
-
+#include "Flash.h"
 
 #define SIZECommand 	6
 #define SIZEResponse 	2
@@ -23,8 +23,8 @@ const char ATshowNetworkReg[] = "AT+CREG?\r";
 const char ATtextMode[] 	  = "AT+CMGF=1\r";
 const char ATsendSMS[] 		  = "AT+CMGS=\"+46735082283\"\r";
 const char ATsetSmsStorage[]  = "AT+CPMS=\"SM\"\r";
-const char ATreadUnreadSms[]  = "AT+CMGR=1\r";
-const char ATdeleteSms[]   = "AT+CMGDA=\"DEL INBOX\"\r";
+const char ATreadUnreadSms[]  = "AT+CMGL=\"REC UNREAD\"\r";
+const char ATdeleteSms[]   = "AT+CMGDA=\"DEL READ\"\r";
 
 
 ///////////////////////////////////////////////////////////////
@@ -41,7 +41,7 @@ char stopAlarm[5];
 char status[6];
 char newLevel[9];
 char newTel[11];
-char newThreshold[16];
+char newThreshold[17];
 
 char startGSMResp[] 	= "ON";
 char stopGSMResp[] 		= "OFF";
@@ -56,7 +56,8 @@ const int SIZEphoneBook = 8;
 char phoneNumber[] = "000000000000";
 
 const int SIZEThresholds = 2;
-char *tempThresholds[2];
+char tempThresholdsUp[2];
+char tempThresholdsDown[2]; // Lokal in ...
 int thresholds[2];
 
 char tempLevel[2];
@@ -106,7 +107,7 @@ void initGSM(void)
    	uartEnable();
    	checkAT();
 */
-   	deleteSMS();
+   //	deleteSMS();
 
 }
 
@@ -124,11 +125,62 @@ void sendATCommand(const char *command)
     {
     	length--;
         c = *(command++);
-        uartSend(length, c);
+        uartSend(c);
     }
 }
 
+void sendNumber(char *number)
+{
+	char text[23] = "AT+CMGS=\"";
 
+	int i = 0;
+	while (i < 12)
+	{
+		text[9+i] = number[i];
+		i++;
+	}
+	text[21] = '\"';
+	text[22] = '\r';
+
+	int length = strlen(text);
+	char c;
+	i = 0;
+	while(length > 0 )
+    {
+    	length--;
+        c = (text[i++]);
+        uartSend(c);
+    }
+}
+
+char checkNumber(char *phoneList, char *number, int pos)
+{
+	if (pos > 0)
+	{
+		int tmp = pos * 13;
+		if (phoneList[tmp] != '+') return '0';
+
+		int end = (pos+1) * 13;
+		int i = 0;
+		while (tmp < end-1)
+		{
+			number[i] = phoneList[tmp];
+			i++; tmp++;
+		}
+		return '1';
+	}
+	else
+	{
+		int tmp = 0;
+		if (phoneList[tmp] != '+') return '0';
+		while (tmp < 12)
+		{
+			number[tmp] = phoneList[tmp];
+			tmp++;
+		}
+		return '1';
+	}
+}
 /*
  * Check if the GSM module has sent the whole message to CPU.
  * The GSM module ends the message with an "OK".
@@ -170,6 +222,8 @@ char readSMS()
 
 	whatIsTheSMS(&executionType);
 
+	//deleteSMS();
+
 	return executionType;
 }
 
@@ -189,22 +243,22 @@ void whatIsTheSMS(char* c)
 	while(start < strlen(uartRxBuf))
 	{
 		if(uartRxBuf[start] == '#')
+		{
 			start = strlen(uartRxBuf);
-
+			endOfSMS++;
+		}
 		else if(uartRxBuf[start] == ':')
 		{
 			j = start;
 			start++;
 			endOfSMS++;
 		}
-
 		else
 		{
 			lengthOfSMS++;
 			start++;
 			endOfSMS++;
 		}
-
 	}
 
 	int i = 0;
@@ -214,7 +268,7 @@ void whatIsTheSMS(char* c)
 
 	switch(lengthOfSMS)
 	{
-		//Start GSM
+		//Enable GSM
 	    case 2:
 		 	while(i < lengthOfSMS)
 		 	{
@@ -229,10 +283,6 @@ void whatIsTheSMS(char* c)
 
 		    else
 		    	*c = 'E';
-
-		    //Start GSM
-		    // if STATUS == 0
-		    //pwrOnOff();
 		    break;
 
 		//Stop GSM
@@ -271,7 +321,6 @@ void whatIsTheSMS(char* c)
 
 		    else
 		    	*c = 'A';
-
 		    //Stop alarm
 		    break;
 
@@ -318,9 +367,9 @@ void whatIsTheSMS(char* c)
 				int k = j + 1;
 				int l = 0;
 
-				while(k < endOfSMS)
+				while(k < endOfSMS-1)
 				{
-		    		tempLevel[l] = uartRxBuf[j];
+		    		tempLevel[l] = uartRxBuf[k];
 		    		k++;
 		    		l++;
 				}
@@ -328,10 +377,8 @@ void whatIsTheSMS(char* c)
 				// Send newLevel to Flash
 				level = (tempLevel[0]-'0')*10 + (tempLevel[1]-'0');
 
-				//writeFlashSensorOffset(level);
+				writeFlashSensorOffset(level);
 			}
-
-
 
 			break;
 
@@ -347,33 +394,33 @@ void whatIsTheSMS(char* c)
 		    	startOfSMS++;
 		    }
 
-
-
 		    newTel[i] = '\0';
 
 		    if (strcmp(newTel, newTelResp) != 0)
 		    	break;
-
 		    else
 		    {
 		    	*c = 'N';
-
 		    	int k = j + 1;
 		    	int l = 0;
 		    	int m = 0;
+		    	int i = 0;
 
+		    	char clear[] = "XXXXXXXXXXXX\n";
+		    	for(i; i<8; i++)
+		    	{
+	    			writeFlashTele(clear, i);
+		    	}
 		    	// Send phone numbers to Flash
 		    	while(k < endOfSMS)
-		    	{
-		    		//If a whole number is read, send it to flash and change position in phoneNumber
+		    	{	//If a whole number is read, send it to flash and change position in phoneNumber
 		    		if(uartRxBuf[k] == ',' || uartRxBuf[k] == '#')
 		    		{
-		    			//writeFlashTele(phoneBook, l);
+		    			writeFlashTele(phoneNumber, l);
 		    			k++;
 		    			l++;
 		    			m = 0;
 		    		}
-
 		    		// put the number from the SMS into phoneBook
 		    		else
 		    		{
@@ -383,10 +430,7 @@ void whatIsTheSMS(char* c)
 			    	}
 		    	}
 		    }
-
 		    break;
-
-
 		//New threshold
 		case 16:
 		    while(i < lengthOfSMS)
@@ -410,35 +454,34 @@ void whatIsTheSMS(char* c)
 
 		    	int l = 0;
 		    	int m = 0;
-
+		    	j++; 	// change offset later
 		    	while(j < endOfSMS)
 		    	{
-		    		while(l < SIZEThresholds)
+		    		if(uartRxBuf[j] == ',')
+		   			{
+		   				j++;
+		   				l++;
+		   				m = 0;
+	    			}
+		    		if(l == 0)
 		    		{
-		    			if(uartRxBuf[j] == ',')
-		    			{
-		    				j++;
-		    				l++;
-		    				m = 0;
-		    			}
-
-		    			else
-						{
-		    				tempThresholds[l][m] = uartRxBuf[j];
-		    				j++;
-		    				m++;
-						}
-		    		}
+		   				tempThresholdsDown[m] = uartRxBuf[j];
+		   			}
+		   			else if (l == 1)
+					{
+	    				tempThresholdsUp[m] = uartRxBuf[j];
+	    				if(m == 2) l++;
+					}
+		    		j++;
+		    		m++;
 		    	}
 
-		    	thresholds[0] = atoi(tempThresholds[0][0])*10 + atoi(tempThresholds[0][1]);
-		    	thresholds[1] = atoi(tempThresholds[1][0])*10 + atoi(tempThresholds[1][1]);
+		    	thresholds[0] = (tempThresholdsDown[0]-'0')*10 + (tempThresholdsDown[1]-'0');
+		    	thresholds[1] = (tempThresholdsUp[0]-'0')*10 + (tempThresholdsUp[1]-'0');
 
-		    	// Send newThreshold to Flash
-		    	//writeFlashLowTolerance(thresholds[0], threshold[1]);
+		    	writeFlashTolerance(thresholds[0], thresholds[1]);			// Send newThreshold to Flash
 		    }
 		    break;
-
 		//Do nothing
 		default: break;
 	}
@@ -462,12 +505,360 @@ char searchForSMS(char *SMS)
  * Send AT command for sending SMS.
  * Send SMS.
 */
+// SENDSMS
 void sendSMS(char *SMS)
+{
+	char phoneList[104];
+	int listLength = 8;
+	int pos = 0;
+	char number[12];
+
+	readFlashTele(phoneList);
+	while(checkNumber(phoneList, number, pos) == '1' && pos < 8)
+	{
+		sendNumber(number);		//Send the telephone number to SIM900
+		pos++;
+		int i = 0;
+		while(i < 4)
+		{
+			Delay();
+			i++;
+		}
+
+		int length = strlen(SMS);
+		char *tmp = SMS;
+		char c;
+		while(length > 0)
+		{
+			length--;
+
+			c = *(tmp++);
+			uartSend(c);
+		}
+
+		i = 0;
+		while(i < 4)
+		{
+			Delay();
+			i++;
+		}
+		sendCtrlZ();
+		i = 0;
+		while(i < 150)
+		{
+			Delay();
+			i++;
+		}
+	}
+}
+
+void sendAlarm(char* SMS, int value)
+{
+	char phoneList[104];
+	int listLength = 8;
+	int pos = 0;
+	char number[12];
+
+
+	readFlashTele(phoneList);
+	while(checkNumber(phoneList, number, pos) == '1' && pos < 8)
+	{
+		sendNumber(number);		//Send the telephone number to SIM900
+		pos++;
+		int i = 0;
+		while(i < 4)
+		{
+			Delay();
+			i++;
+		}
+
+		int length = strlen(SMS);
+		char *tmp = SMS;
+		char c;
+		while(length > 0)
+		{
+			length--;
+			c = *(tmp++);
+			uartSend(c);
+		}
+
+		int tmpValue = value;
+		if (tmpValue >= 10)
+		{	// Convert int to char value larger than 10
+			int x = tmpValue/10;
+			char a = x + '0';
+
+			tmpValue -= 10*x;
+			char b = tmpValue + '0';
+			uartSend(a);
+			uartSend(b);
+		}
+		else
+		{
+			char a = tmpValue + '0';
+			uartSend(a);
+		}
+
+		i = 0;
+		while(i < 4)
+		{
+			Delay();
+			i++;
+		}
+		sendCtrlZ();
+		i = 0;
+		while(i < 150)
+		{
+			Delay();
+			i++;
+		}
+	}
+
+		//
+/*	int length = strlen(SMS);
+
+	sendATCommand(ATsendSMS);		//Send the telephone number to SIM900
+
+	int i = 0;
+	while(i < 4)
+	{
+		Delay();
+		i++;
+	}
+
+	char c;
+	while(length > 0 )
+	{
+	   	length--;
+
+	    c = *(SMS++);
+	    uartSend(c);
+	}
+
+	if (value >= 10)
+	{	// Convert int to char value larger than 10
+		int x = value/10;
+		char a = x + '0';
+
+		value -= 10*x;
+		char b = value + '0';
+		uartSend(a);
+		uartSend(b);
+	}
+	else
+	{
+		char a = value + '0';
+		uartSend(a);
+	}
+
+	i = 0;
+	while(i < 4)
+	{
+		Delay();
+		i++;
+	}
+
+	sendCtrlZ(); */
+}
+
+void responseStatus(char *SMS, int sensor)
+{
+	int lower = readFlashLowTolerance();
+	int upper = readFlashHighTolerance();
+	int normal = readFlashSensorOffset();
+
+	sendATCommand(ATsendSMS);		//Send the telephone number to SIM900
+
+	int i = 0;
+	while(i < 4)
+	{
+		Delay();
+		i++;
+	}
+
+	char c;
+	int length = strlen(SMS);
+	while(length > 0 )
+	{
+	   	length--;
+
+	    c = *(SMS++);
+	    uartSend(c);
+	}
+
+	sendATCommand("Niva:");
+	if (sensor >= 10) // aktuellt
+	{	// Convert int to char value larger than 10
+		int x = sensor/10;
+		char a = x + '0';
+
+		sensor -= 10*x;
+		char b = sensor + '0';
+		uartSend(a);
+		uartSend(b);
+	}
+	else
+	{
+		char a = sensor + '0';
+		uartSend(a);
+	}
+
+	// TH ned
+	sendATCommand("\nTroskel ner:");
+	if (lower >= 10)
+	{	// Convert int to char value larger than 10
+		int x = lower/10;
+		char a = x + '0';
+
+		lower -= 10*x;
+		char b = lower + '0';
+		uartSend(a);
+		uartSend(b);
+	}
+	else
+	{
+		char a = lower + '0';
+		uartSend(a);
+	}
+
+	// TH up
+	sendATCommand("\nTroskel upp:");
+	if (upper >= 10)
+	{	// Convert int to char value larger than 10
+		int x = upper/10;
+		char a = x + '0';
+
+		upper -= 10*x;
+		char b = upper + '0';
+		uartSend(a);
+		uartSend(b);
+	}
+	else
+	{
+		char a = upper + '0';
+		uartSend(a);
+	}
+
+	// Normal lvl
+	sendATCommand("\nNormal:");
+	if (normal >= 10)
+	{	// Convert int to char value larger than 10
+		int x = normal/10;
+		char a = x + '0';
+
+		normal -= 10*x;
+		char b = normal + '0';
+		uartSend(a);
+		uartSend(b);
+	}
+	else
+	{
+		char a = normal + '0';
+		uartSend(a);
+	}
+
+	i = 0;
+	while(i < 4)
+	{
+		Delay();
+		i++;
+	}
+	sendCtrlZ();
+}
+
+void responseNrChange(char *SMS)
+{
+	char tmp[104];
+	int listLength = 8;
+
+	readFlashTele(tmp);
+
+	sendATCommand(ATsendSMS);		//Send the telephone number to SIM900
+	int i = 0;
+	while(i < 4)
+	{
+		Delay();
+		i++;
+	}
+
+	char c;
+	int length = strlen(SMS);
+	while(length > 0 )
+	{
+	   	length--;
+	    c = *(SMS++);
+	    uartSend(c);
+	}
+	length = 104;
+	i = 0;
+	while(i < length)
+	{
+		uartSend(tmp[i]);
+		i++;
+	}
+
+	i = 0;
+	while(i < 4)
+	{
+		Delay();
+		i++;
+	}
+	sendCtrlZ();
+}
+// LVL
+void responseLvlChange(char *SMS, int offset)
+{
+	sendATCommand(ATsendSMS);		//Send the telephone number to SIM900
+
+	char c;
+	int length = strlen(SMS);
+
+	int i = 0;
+	while(i < 4)
+	{
+		Delay();
+		i++;
+	}
+
+	while(length > 0 )
+	{
+	   	length--;
+
+	    c = *(SMS++);
+	    uartSend(c);
+	}
+
+	if (offset >= 10)
+	{	// Convert int to char value larger than 10
+		int x = offset/10;
+		char a = x + '0';
+
+		offset -= 10*x;
+		char b = offset + '0';
+		uartSend(a);
+		uartSend(b);
+	}
+	else
+	{
+		char a = offset + '0';
+		uartSend(a);
+	}
+
+	i = 0;
+	while(i < 4)
+	{
+		Delay();
+		i++;
+	}
+
+	sendCtrlZ();
+}
+
+void responseThChange(char *SMS, int lower, int upper)
 {
 	sendATCommand(ATsendSMS);		//Send the telephone number to SIM900
 
 	int i = 0;
-
 	while(i < 4)
 	{
 		Delay();
@@ -482,19 +873,52 @@ void sendSMS(char *SMS)
 	   	length--;
 
 	    c = *(SMS++);
-	    uartSend(length, c);
+	    uartSend(c);
+	}
+	sendATCommand("Nedre:");
+	if (lower >= 10)
+	{	// Convert int to char value larger than 10
+		int x = lower/10;
+		char a = x + '0';
+
+		lower -= 10*x;
+		char b = lower + '0';
+		uartSend(a);
+		uartSend(b);
+	}
+	else
+	{
+		char a = lower + '0';
+		uartSend(a);
+	}
+
+	// TH up
+	sendATCommand("\nOvre:");
+	if (upper >= 10)
+	{	// Convert int to char value larger than 10
+		int x = upper/10;
+		char a = x + '0';
+
+		upper -= 10*x;
+		char b = upper + '0';
+		uartSend(a);
+		uartSend(b);
+	}
+	else
+	{
+		char a = upper + '0';
+		uartSend(a);
 	}
 
 	i = 0;
-
 	while(i < 4)
 	{
 		Delay();
 		i++;
 	}
-
 	sendCtrlZ();
 }
+
 
 /*
  * Use this to end your SMS.

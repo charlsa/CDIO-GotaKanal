@@ -30,6 +30,10 @@ void checkAT();
 //Check if GSM has registered on network
 char checkRegistration(char *message);
 
+char checkNumber(char *phoneList, char *number, int pos);
+
+void sendNumber(char *number);
+
 //Read SMS from GSM module
 char readSMS();
 
@@ -45,13 +49,16 @@ void sendCtrlZ(void);
 //
 void sendSMS(char *SMS);
 
-//
+void sendAlarm(char *SMS, int value);
+
+void responseStatus(char *SMS, int sensor);
+
+void responseLvlChange(char *SMS, int offset);
+
+void responseThChange(char *SMS, int lower, int upper);
+
+void responseNrChange(char *SMS);
+
 void deleteSMS();
 
-//Compare response from GSM to wanted response
-int compareEasy(char *response, const char *wantedResponse);
-
-void writeFlashLowTolerance(int lowTreshold);
-
-void writeFlashHighTolerance(int highTreshold);
 #endif /* GSM_MODULE_H_ */

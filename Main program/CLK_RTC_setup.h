@@ -15,6 +15,7 @@ extern int loopChange;
 extern int loopChange2;
 extern char loop2Mode;
 extern char startMode;
+extern char timerAlarmFlag;		// Enable = 1
 
 void clkDebug();
 

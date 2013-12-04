@@ -43,7 +43,6 @@ void uartEnable(void)
 	UCA1IE |= UCRXIE;
 }
 
-
 // Disable Tx/Rx interrupts
 void uartDisable(void)
 {
@@ -52,7 +51,7 @@ void uartDisable(void)
 
 
 // Puts a vector in the output buffer and starts the sending process
-void uartSend(int len, char vec)
+void uartSend(char vec)
 {
 	while(!(UCA1IFG & UCTXIFG));
     UCA1TXBUF = vec;
@@ -64,7 +63,7 @@ void uartRead(char a)
 {
     uartRxBuf[uartStart++] = a;
 
-    if(ATResponseOK[id] == a)
+    if(responseOK[id] == a)
     	id++;
 }
 

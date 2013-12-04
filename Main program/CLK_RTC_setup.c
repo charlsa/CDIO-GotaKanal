@@ -36,8 +36,8 @@ void rtcSetup()
 
 void rtcStart(unsigned int rtcOffsetH, unsigned int rtcOffsetL)
 {
-	RTCTIM0 = rtcOffsetL;				// if not reseted, reset
-	RTCTIM1 = rtcOffsetH; 				// changed to offset
+	RTCTIM0 = 0xF000;//rtcOffsetL;				// if not reseted, reset
+	RTCTIM1 = 0xFFFF;//rtcOffsetH; 				// changed to offset
 	RTCCTL01 &= ~RTCHOLD; 				// Start RTC (Hold is writen to Zero)
 	__bis_SR_register(LPM3_bits + GIE); // Sets the MCU into LPM3 => only (ACLK != 0)
 }
@@ -65,12 +65,12 @@ __interrupt void RTC_ISR(void)
 			loop1 = 0;
 			loop2 = 0;
 			loop2Mode = '0';
+			timerAlarmFlag = '1';
 		}
 	}
 	else
 	{
 		loop1++;
 	}
-
 	RTCCTL01 &= ~RTCTEVIFG;	// Clear RTC-Interrupt
 }
