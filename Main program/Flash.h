@@ -25,6 +25,6 @@ int readFlashSensorOffset();
 
 void writeFlashTele(char Value[],int index);
 
-char readFlashTele(char* buffer);
+void readFlashTele(char* buffer);
 
 #endif /* FLASH_H_ */
