@@ -33,6 +33,7 @@ int mainFunctionSensor(int vector[], int dataLength, int* position, char* dataEn
 		if(tmp_pos == 29)
 		{	// When 30 values are stored, reset vector position.
 			*position = 0;
+			 tmp_pos++;
 		}
 		else if(tmp_pos == 5 && tmp_enable == 0)
 		{	// Set dataEnable to insure that a mean value can be taken even if the position has been reseted
@@ -168,7 +169,8 @@ void echo()
 
 	while((TA0R < 0x9C40)); 	// Wait for timer to count to 9C40 = 40ms = max time
 	TA0R = 0x0000;
-	TA0CCTL1 &= ~CCIE;			// Disable catch interrupt
+	TA0CCTL1 &= ~CCIE;			// Disable catch interruptTA0CTL
+	TA0CTL |= TACLR;
 }
 
 void SensorCalc(unsigned int* dist)
@@ -183,26 +185,32 @@ unsigned int meanMeasurement(int length, int data[], int* pos, int number)
 
 	if(tmp < (number-1))
 	{ 	//	If position smaller than 5, ex 4-2 = 2 nr of numbers from the top of the vector // Debugga
-		int a = (number-1)-tmp;
-		length -= 1;
-		while(a != ((number-1)))
+
+		int tmp2 = 0;
+		while(tmp != 0)
 		{
+			tmp2++;
 			sum += data[tmp--];
-			a -= tmp;
 		}
-		while((length-1-tmp) != length-tmp)
+
+		length -= 1;
+		int step = length;
+		while((length-(number-tmp2)) != step)
 		{ // pos = 0 and loop to tmp
-			sum += data[(length-1-tmp)];
-			tmp++;
+			sum += data[step];
+			step--;
 		}
 	}
 	else
 	{
-		int endPos = (tmp-number);
-		while (tmp != (endPos)) 	// Get the last value
+		int endPos = (tmp-(number)); // +1
+		tmp -= 1;
+		while (tmp != (endPos-1)) 	// Get the last value
 		{
+
 			sum += data[tmp];
 			tmp--;
+		//	if (tmp == 0) break;
 		}
 	}
 	return sum/number;
