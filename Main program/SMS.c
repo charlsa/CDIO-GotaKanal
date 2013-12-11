@@ -25,12 +25,10 @@ const char ATsendSMS[] 		  = "AT+CMGS=\"+46735082283\"\r";
 void sendPhonenumber(char *number)
 {
 	char text[23] = "AT+CMGS=\"";
-
 	int i = 0;
 	while (i < 12)
 	{
-		text[9+i] = number[i];
-		i++;
+		text[9+i] = number[i]; i++;
 	}
 	text[21] = '\"';
 	text[22] = '\r';
@@ -54,8 +52,7 @@ char checkNumber(char *phoneList, char *number, int pos)
 		int tmp = pos * 13;
 		if (phoneList[tmp] != '+') return '0';
 
-		int end = (pos+1) * 13;
-		int i = 0;
+		int end = (pos+1) * 13, i = 0;
 		while (tmp < end-1)
 		{
 			number[i] = phoneList[tmp];
@@ -97,6 +94,19 @@ char readSMS()
 	return executionType;
 }
 
+//
+void saveMessage(char *message, int startSMS, int lengthSMS)
+{
+	int i = 0;
+	while(i < lengthSMS)
+	{
+		message[i] = uartRxBuf[startSMS];
+    	i++;
+    	startSMS++;
+	}
+	message[i] = '\0';
+}
+
 /*
  * Compares the message with known messages.
  * Sets c to different letters and executes different things
@@ -105,244 +115,153 @@ char readSMS()
 void whatIsTheSMS(char* c)
 {
 	int start = searchForSMS(uartRxBuf);
-	int startOfSMS = start;
-	int endOfSMS = start;
-	int lengthOfSMS = 0;
-	int j = 0;
+	int i = start, end = start, length = 0;
+	int lengthConfig = 0, config = 0;
 
-	while(start < strlen(uartRxBuf))
+	if(i == 0) return;
+
+	while(i < strlen(uartRxBuf))
 	{
-		if(uartRxBuf[start] == '#')
+		if(uartRxBuf[i] == '#') break;
+
+		else if(uartRxBuf[i] == ':')
 		{
-			start = strlen(uartRxBuf);
-			endOfSMS++;
-		}
-		else if(uartRxBuf[start] == ':')
-		{
-			j = start;
-			start++;
-			endOfSMS++;
+			i++; end++; config = i;
+
 		}
 		else
 		{
-			lengthOfSMS++;
-			start++;
-			endOfSMS++;
+			i++; length++; end++;
 		}
 	}
 
-	int i = 0;
+	if(config != 0)
+		length  = config-start;
 
-	if(j != 0)
-		lengthOfSMS = j - startOfSMS + 1;
+	char startGSM[2], stopGSM[3];
+	char stopAlarm[5], status[6];
+	char newLevel[9], newTel[11], newThreshold[17];
 
-	char startGSM[2];
-	char stopGSM[3];
-	char stopAlarm[5];
-	char status[6];
-	char newLevel[9];
-	char newTel[11];
-	char newThreshold[17];
-
-	switch(lengthOfSMS)
+	switch(length)
 	{
-		//Enable GSM
-	    case 2:
-		 	while(i < lengthOfSMS)
-		 	{
-		 		startGSM[i++] = uartRxBuf[startOfSMS];
-		 		startOfSMS++;
-		 	}
-		 	startGSM[i] = '\0';
+	    case 2:		//Enable GSM
+	    	saveMessage(startGSM, start, length);
 
-		    if (strcmp(startGSM, "ON") != 0)
-		    	break;
-		    else
-		    	*c = 'E';
+		    if (strcmp(startGSM, "ON") != 0) break;
+		    else *c = 'E';
 		    break;
 
-		//Stop GSM
-	    case 3:
-		 	while(i < lengthOfSMS)
-		 	{
-		 		stopGSM[i++] = uartRxBuf[startOfSMS];
-		 		startOfSMS++;
-		 	}
-		 	stopGSM[i] = '\0';
+	    case 3:		//Stop GSM
+	    	saveMessage(stopGSM, start, length);
 
-		 	if (strcmp(stopGSM, "OFF") != 0)
-		    	break;
-		    else
-		    	*c = 'D';
+		 	if (strcmp(stopGSM, "OFF") != 0) break;
+		    else *c = 'D';
 		    break;
 
-		//Stop alarm
-	    case 5:
-		 	while(i < lengthOfSMS)
-		 	{
-		 		stopAlarm[i++] = uartRxBuf[startOfSMS];
-		 		startOfSMS++;
-		 	}
-		 	stopAlarm[i] = '\0';
+	    case 5:		//Stop alarm
+	    	saveMessage(stopAlarm, start, length);
 
-		    if (strcmp(stopAlarm, "STOPP") != 0)
-		    	break;
-		    else
-		    	*c = 'A';
+		    if (strcmp(stopAlarm, "STOPP") != 0) break;
+		    else *c = 'A';
 		    break;
 
-	    //Send status
-		case 6:
-		    while(i < lengthOfSMS)
-		    {
-		    	status[i++] = uartRxBuf[startOfSMS];
-		    	startOfSMS++;
-		    }
-		    status[i] = '\0';
+		case 6:		//Send status
+	    	saveMessage(status, start, length);
 
-		    if (strcmp(status, "STATUS") != 0)
-		    	break;
-		    else
-		    	*c = 'S';
+		    if (strcmp(status, "STATUS") != 0) break;
+		    else *c = 'S';
 		    break;
 
-		//Config new level
-		case 9:
-			while(i < lengthOfSMS)
-			{
-				newLevel[i] = uartRxBuf[startOfSMS];
+		case 9:		//Config new level
+			saveMessage(newLevel, start, length);
 
-		    	if(uartRxBuf[startOfSMS] == ':')
-		    		startOfSMS = lengthOfSMS;
-		    	i++;
-		    	startOfSMS++;
-			}
-			newLevel[i] = '\0';
-
-			if (strcmp(newLevel, "KONFIG N:") != 0)
-		    	break;
+			if (strcmp(newLevel, "KONFIG N:") != 0) break;
 			else
 			{
 				*c = 'L';
-
+				i = config;
 				char tempLevel[2];
-				int level = 0;
-				int k = 0;
-				j++;
+				int j, level = 0;
 
-				while(j < endOfSMS-1)
+				while(i < end)
 				{
-		    		tempLevel[k] = uartRxBuf[j];
-		    		j++;
-		    		k++;
+		    		tempLevel[j] = uartRxBuf[i];
+		    		i++; j++;
 				}
 				level = (tempLevel[0]-'0')*10 + (tempLevel[1]-'0');
-
 				writeFlashSensorOffset(level);	// Send new level to Flash
 			}
 			break;
 
-		//Config new telephone numbers
-		case 11:
-		    while(i < lengthOfSMS)
-		    {
-		    	newTel[i] = uartRxBuf[startOfSMS];
+		case 11:	//Config new telephone numbers
+			saveMessage(newTel, start, length);
 
-		    	if(uartRxBuf[startOfSMS] == ':')
-		    		startOfSMS = lengthOfSMS;
-		    	i++;
-		    	startOfSMS++;
-		    }
-		    newTel[i] = '\0';
-
-		    if (strcmp(newTel, "KONFIG TEL:") != 0)
-		    	break;
+		    if (strcmp(newTel, "KONFIG TEL:") != 0) break;
 		    else
 		    {
 		    	*c = 'N';
-		    	j++;
-		    	int k = 0;
-		    	int l = 0;
-		    	int i = 0;
-
+		    	i = config;
+		    	int j = 0, k = 0;
 		    	char phoneNumber[] = "000000000000";
 		    	char clear[] = "XXXXXXXXXXXX\n";
-		    	for(i; i < 8; i++)
-		    	{
-	    			writeFlashTele(clear, i);
-		    	}
 
-		    	while(j < endOfSMS)
+		    	while(j < 8)
 		    	{
-		    		//If a whole number is read, send it to flash and change position in phoneNumber
-		    		if(uartRxBuf[j] == ',' || uartRxBuf[j] == '#')
+	    			writeFlashTele(clear, j);
+	    			j++;
+		    	}
+		    	j = 0;
+		    	while(i < end+1)
+		    	{	//If a whole number is read, send it to flash and change position in phoneNumber
+		    		if(uartRxBuf[i] == ',' || uartRxBuf[i] == '#')
 		    		{
-		    			writeFlashTele(phoneNumber, k);
-		    			j++;
-		    			k++;
-		    			l = 0;
+		    			writeFlashTele(phoneNumber, j);
+		    			i++; j++;
+		    			k = 0;
 		    		}
 		    		else
-		    		{
-		    			// put the number from the SMS into phoneBook
-		    			phoneNumber[l] = uartRxBuf[j];
-		    			j++;
-			    		l++;
+		    		{	// put the number from the SMS into phoneBook
+		    			phoneNumber[k] = uartRxBuf[i];
+		    			i++; k++;
 			    	}
 		    	}
 		    }
 		    break;
-		//New threshold
-		case 16:
-		    while(i < lengthOfSMS)
-		    {
-		    	newThreshold[i] = uartRxBuf[startOfSMS];
 
-		    	if(uartRxBuf[startOfSMS] == ':')
-		    		startOfSMS = lengthOfSMS;
-		    	i++;
-		    	startOfSMS++;
-		    }
+		case 16:	//New threshold
+			saveMessage(newThreshold, start, length);
 
-		    newThreshold[i] = '\0';
-		    char newThresholdResp[] = "KONFIG TOLERANS:";
-
-		    if(strcmp(newThreshold, newThresholdResp) != 0)
+		    if(strcmp(newThreshold, "KONFIG TOLERANS:") != 0)
 		    	break;
 		    else
 		    {
 		    	*c = 'T';
-
-		    	char tempThresholdsDown[2];
-		    	char tempThresholdsUp[2];
+		    	i = config;
+		    	char tempThresholdDown[2];
+		    	char tempThresholdUp[2];
 		    	int thresholds[2];
-		    	int k = 0;
-		    	int l = 0;
-		    	j++; 								// change offset later
-		    	while(j < endOfSMS)
+		    	int j = 0, k = 0;
+
+		    	// change offset later
+		    	while(i < end)
 		    	{
-		    		if(uartRxBuf[j] == ',')
+		    		if(uartRxBuf[i] == ',')
 		   			{
-		   				j++;
-		   				k++;
-		   				l = 0;
+		    			i++; j++; k = 0;
 	    			}
-		    		if(k == 0)
+		    		if(j == 0)
 		    		{
-		   				tempThresholdsDown[l] = uartRxBuf[j];
+		   				tempThresholdDown[k] = uartRxBuf[i];
 		   			}
-		   			else if (k == 1)
+		   			else if (j == 1)
 					{
-	    				tempThresholdsUp[l] = uartRxBuf[j];
-	    				if(l == 2) k++;
+	    				tempThresholdUp[k] = uartRxBuf[i];
+	    				if(k == 2) i++;
 					}
-		    		j++;
-		    		l++;
+		    		i++; k++;
 		    	}
-
-		    	thresholds[0] = (tempThresholdsDown[0]-'0')*10 + (tempThresholdsDown[1]-'0');
-		    	thresholds[1] = (tempThresholdsUp[0]-'0')*10 + (tempThresholdsUp[1]-'0');
-
+		    	thresholds[0] = (tempThresholdDown[0]-'0')*10 + (tempThresholdDown[1]-'0');
+		    	thresholds[1] = (tempThresholdUp[0]-'0')*10 + (tempThresholdUp[1]-'0');
 		    	writeFlashTolerance(thresholds[0], thresholds[1]);			// Send newThreshold to Flash
 		    }
 		    break;
@@ -358,10 +277,8 @@ void whatIsTheSMS(char* c)
 char searchForSMS(char *SMS)
 {
 	int i = 0;
-
 	while(i < strlen(SMS))
-		if(SMS[i++] == '#')
-			return i;
+		if(SMS[i++] == '#') return i;
 	return 0;
 }
 
@@ -372,29 +289,23 @@ char searchForSMS(char *SMS)
 // SENDSMS
 void sendSMS(char *SMS)
 {
-	char phoneList[104];
-	int listLength = 8;
-	int pos = 0;
-	char number[12];
-
+	char phoneList[104], number[12];
+	int listLength = 8, pos = 0;
 	readFlashTele(phoneList);
+
 	while(checkNumber(phoneList, number, pos) == '1' && pos < listLength)
 	{
 		sendPhonenumber(number);		//Send the telephone number to SIM900
 		pos++;
-
 		Delay();
-
 		sendGSM(SMS);
-
 		Delay();
 		sendCtrlZ();
 
 		int i = 0;
 		while(i < 37)			// Optimeras!!!!
 		{
-			Delay();
-			i++;
+			Delay(); i++;
 		}
 	}
 }
@@ -402,30 +313,24 @@ void sendSMS(char *SMS)
 // Lägg till kommentar
 void sendAlarm(char* SMS, int value)
 {
-	char phoneList[104];
-	int listLength = 8;
-	int pos = 0;
-	char number[12];
-
+	char phoneList[104], number[12];
+	int listLength = 8, pos = 0;
 	readFlashTele(phoneList);
+
 	while(checkNumber(phoneList, number, pos) == '1' && pos < listLength)
 	{
 		sendPhonenumber(number);		//Send the telephone number to SIM900
 		pos++;
-
 		Delay();
-
 		sendGSM(SMS);
 		sendNumber(value);
-
 		Delay();
 		sendCtrlZ();
 
 		int i = 0;
 		while(i < 37)			// Optimera!!!
 		{
-			Delay();
-			i++;
+			Delay(); i++;
 		}
 	}
 }
@@ -435,142 +340,112 @@ void responseStatus(char *SMS, int sensor)
 	int lower = readFlashLowTolerance();
 	int upper = readFlashHighTolerance();
 	int normal = readFlashSensorOffset();
-
-	char phoneList[104];
-	int listLength = 8;
-	int pos = 0;
-	char number[12];
-
+	char phoneList[104], number[12];
+	int listLength = 8, pos = 0;
 	readFlashTele(phoneList);
+
 	while(checkNumber(phoneList, number, pos) == '1' && pos < listLength)
 	{
 		sendPhonenumber(number);		//Send the telephone number to SIM900
 		pos++;
-
 		Delay();
 		sendGSM(SMS);
-
-		// Sensornivå
-		sendGSM("Niva:");
-		sendNumber(sensor);
-
-		// TH ned
-		sendGSM("\nTroskel ner:");
-		sendNumber(lower);
-
-		// TH up
-		sendGSM("\nTroskel upp:");
-		sendNumber(upper);
-
 		// Normal lvl
-		sendGSM("\nNormal:");
+		sendGSM("Offset: ");
 		sendNumber(normal);
-
+		// TH ned
+		sendGSM("\nTolerans ner: ");
+		sendNumber(lower);
+		// TH up
+		sendGSM("\nTolerans upp: ");
+		sendNumber(upper);
+		// Sensornivå
+		sendGSM("\nOffset - Sensor: ");
+		sendNumber(sensor);
 		Delay();
 		sendCtrlZ();
 
 		int i = 0;
 		while(i < 37)			// Optimeras!!!!
 		{
-			Delay();
-			i++;
+			Delay(); i++;
 		}
 	}
 }
 
 void responseNrChange(char *SMS)
 {
-	char phoneList[104];
-	int listLength = 8;
-	int pos = 0;
-	char number[12];
+	char phoneList[105], number[12];
+	int listLength = 8, pos = 0;
 
 	readFlashTele(phoneList);
 	while(checkNumber(phoneList, number, pos) == '1' && pos < listLength)
 	{
 		sendPhonenumber(number);		//Send the telephone number to SIM900
 		pos++;
-
 		Delay();
-
 		sendGSM(SMS);
+		int a = strlen(phoneList);
 		sendGSM(phoneList);
 
-		Delay();
+		//Delay();
 		sendCtrlZ();
 
 		int i = 0;
 		while(i < 37)			// Optimeras!!!!
 		{
-			Delay();
-			i++;
+			Delay(); i++;
 		}
 	}
 }
 // LVL
 void responseLvlChange(char *SMS, int offset)
 {
-	char phoneList[104];
-	int listLength = 8;
-	int pos = 0;
-	char number[12];
-
+	char phoneList[104], number[12];
+	int listLength = 8, pos = 0;
 	readFlashTele(phoneList);
+
 	while(checkNumber(phoneList, number, pos) == '1' && pos < listLength)
 	{
 		sendPhonenumber(number);		//Send the telephone number to SIM900
 		pos++;
-
 		Delay();
-
 		sendGSM(SMS);
 		sendNumber(offset);
-
 		Delay();
 		sendCtrlZ();
-		int i = 0;
 
+		int i = 0;
 		while(i < 37)			// Optimeras!!!!
 		{
-			Delay();
-			i++;
+			Delay(); i++;
 		}
 	}
 }
 
 void responseThChange(char *SMS, int lower, int upper)
 {
-	char phoneList[104];
-	int listLength = 8;
-	int pos = 0;
-	char number[12];
-
+	char phoneList[104], number[12];
+	int listLength = 8, pos = 0;
 	readFlashTele(phoneList);
+
 	while(checkNumber(phoneList, number, pos) == '1' && pos < listLength)
 	{
 		sendPhonenumber(number);		//Send the telephone number to SIM900
 		pos++;
-
 		Delay();
 		sendGSM(SMS);
-
-		// TH low
-		sendGSM("Nedre:");
+		sendGSM("Ner: "); 		// TH low
 		sendNumber(lower);
-
-		// TH up
-		sendGSM("\nOvre:");
+		sendGSM("\nUpp: ");		// TH up
 		sendNumber(upper);
-
 		Delay();
 		sendCtrlZ();
 
 		int i = 0;
-
 		while(i < 37)			// Optimeras!!!!
 		{
-			Delay();
-			i++;
+			Delay(); i++;
 		}
 	}
 }
@@ -594,16 +469,13 @@ void deleteSMS()
 
 void sendNumber(int x)
 {
-	if (x >= 10)
-	{	// Convert int to char value larger than 10
+	if (x >= 10)		// Convert int to char value larger than 10
+	{
 		int y = x/10;
 		char a = y + '0';
-
 		x -= 10*y;
-
 		char b = x + '0';
-		uartSend(a);
-		uartSend(b);
+		uartSend(a); uartSend(b);
 	}
 	else
 	{
@@ -612,7 +484,7 @@ void sendNumber(int x)
 	}
 }
 
-void sendGSM(const char *message)
+void sendGSM(char *message)
 {
 	char c;
 	int length = strlen(message);
@@ -620,7 +492,6 @@ void sendGSM(const char *message)
 	while(length > 0 )
 	{
 	   	length--;
-
 	    c = *(message++);
 	    uartSend(c);
 	}
