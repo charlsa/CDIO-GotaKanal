@@ -37,8 +37,10 @@ void responseNrChange(char *SMS);
 
 void deleteSMS();
 
-void sendGSM(const char *message);
+void sendGSM(char *message);
 
 void sendNumber(int x);
+
+void saveMessage(char *message, int startOfSMS, int lengthOfSMS);
 
 #endif /* SMS_H_ */
