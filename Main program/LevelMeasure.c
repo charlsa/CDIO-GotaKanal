@@ -175,7 +175,7 @@ void echo()
 
 void SensorCalc(unsigned int* dist)
 {	//	Converts the pulse width of the measuring echo to distance
-	*dist = (SonicEcho/58);
+	*dist = (SonicEcho/57);
 }
 
 unsigned int meanMeasurement(int length, int data[], int* pos, int number)
