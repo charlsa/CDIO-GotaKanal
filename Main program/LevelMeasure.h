@@ -11,9 +11,9 @@
 #include <msp430.h>
 #include "math.h"
 
-#define trigPin P11OUT
-#define trigPin_nr BIT2
-#define trigPin_DIR P11DIR
+#define trigPin P1OUT
+#define trigPin_nr BIT7
+#define trigPin_DIR P1DIR
 #define BUTTON BIT6
 #define ECHO BIT2
 #define LED BIT0
