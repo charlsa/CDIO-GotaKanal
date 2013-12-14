@@ -25,9 +25,11 @@ void initGSM();
 void sendATCommand(const char *command);
 
 //Check if GSM returns "OK"
-void checkAT();
+void checkOK();
 
 //Check if GSM has registered on network
 char checkRegistration(char *message);
+
+char checkAT();
 
 #endif /* GSM_MODULE_H_ */
