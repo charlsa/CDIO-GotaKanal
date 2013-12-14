@@ -115,8 +115,8 @@ void saveMessage(char *message, int startSMS, int lengthSMS)
 void whatIsTheSMS(char* c)
 {
 	int start = searchForSMS(uartRxBuf);
-	int i = start, end = start, length = 0;
-	int lengthConfig = 0, config = 0;
+	int i = start, end = start;
+	int config = 0, length = 0;
 
 	if(i == 0) return;
 
@@ -181,7 +181,7 @@ void whatIsTheSMS(char* c)
 				*c = 'L';
 				i = config;
 				char tempLevel[2];
-				int j, level = 0;
+				int j = 0, level = 0;
 
 				while(i < end)
 				{
@@ -337,9 +337,12 @@ void sendAlarm(char* SMS, int value)
 
 void responseStatus(char *SMS, int sensor)
 {
+	//writeFlashPosition
+	//char positon[30];
+	//readFlashPosition(position[]);
 	int lower = readFlashLowTolerance();
 	int upper = readFlashHighTolerance();
-	int normal = readFlashSensorOffset();
+	int offset = readFlashSensorOffset();
 	char phoneList[104], number[12];
 	int listLength = 8, pos = 0;
 	readFlashTele(phoneList);
@@ -350,17 +353,24 @@ void responseStatus(char *SMS, int sensor)
 		pos++;
 		Delay();
 		sendGSM(SMS);
+		// Position
+		sendGSM("Position: ");
+		//sendGSM(position);
 		// Normal lvl
-		sendGSM("Offset: ");
-		sendNumber(normal);
+		sendGSM("\nOffset: ");
+		sendNumber(offset);
 		// TH ned
 		sendGSM("\nTolerans ner: ");
 		sendNumber(lower);
 		// TH up
 		sendGSM("\nTolerans upp: ");
 		sendNumber(upper);
+		sendGSM("\nNiva: ");
+		if(sensor > 0)
+			sendGSM("+");
+		else
+			sendGSM("-");
 		// Sensornivå
-		sendGSM("\nOffset - Sensor: ");
 		sendNumber(sensor);
 		Delay();
 		sendCtrlZ();
@@ -388,7 +398,7 @@ void responseNrChange(char *SMS)
 		int a = strlen(phoneList);
 		sendGSM(phoneList);
 
-		//Delay();
+		Delay();
 		sendCtrlZ();
 
 		int i = 0;
@@ -455,8 +465,8 @@ void responseThChange(char *SMS, int lower, int upper)
 */
 void sendCtrlZ(void)
 {
-	while(!(UCA1IFG & UCTXIFG));		//TX buffer ready?
-    UCA1TXBUF=26;                       //ASCII number for Ctrl+Z
+	while(!(UCA2IFG & UCTXIFG));		//TX buffer ready?
+    UCA2TXBUF=26;                       //ASCII number for Ctrl+Z
 }
 
 /*
