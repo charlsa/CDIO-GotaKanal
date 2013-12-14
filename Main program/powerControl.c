@@ -7,14 +7,15 @@
 #include "powerControl.h"
 
 void boardSetup(){
-	P4DIR |= BIT0 + BIT1 + BIT5; 	// Bit0 = 4.1V, Bit1 = 5V and Bit5 = second GSM
+	P8DIR |= BIT0 + BIT2 + BIT3 + BIT5; 	// Bit0 = 4.1V, Bit1 = 5V and Bit5 = second GSM
+	P8DIR &= ~BIT4;
 	P3DIR |= BIT0;					// SHND Charger
 
-	P6DIR = 0x00;	// Dip input
-	P10DIR = 0xFF; 	// Dip Power
+	P6DIR = 0x00;					// DIP1 = P6.0
+	P10DIR = 0xFF;
 }
 
-void startCharger(){
+void chargerStart(){
 	P3OUT |= BIT0;
 }
 
@@ -23,11 +24,11 @@ void stopCharger(){
 }
 
 void V4Start(){
-	P4OUT |= BIT0; // enable 4.1 V
+	P8OUT |= BIT5; // enable 4.1 V
 }
 
 void V4Stop(){
-	P4OUT &= ~BIT0;
+	P8OUT &= ~BIT5;
 }
 
 void tmpvV4Start(){
@@ -39,12 +40,13 @@ void tmpvV4Stop(){
 }
 
 void V5Start(){
-	P4OUT |= BIT1; // enable 5 V
+	P8OUT |= BIT0; // enable 5 V
 }
 
 void V5Stop(){
-	P4OUT &= ~BIT1;
+	P8OUT &= ~BIT0;
 }
+
 
 void readDip(){
 
@@ -57,7 +59,7 @@ void readDip(){
 	positions[4] = "Soderkoping";
 	positions[5] = "Boren";
 	positions[6] = "Roxen";
-	positions[7] = "karlsborg";
+	positions[7] = "Karlsborg";
 	positions[8] = "Bergsgasthamn";
 	positions[9] = "Bergbron";
 
@@ -100,20 +102,16 @@ void readDip(){
 	}
 	else
 	{
-	writeFlashPosition(positions[0]);	
+	writeFlashPosition(positions[0]);
 	}
-	
+
  	P10OUT = 0x00;		// Turn off dip powe
 }
 
-void startGSMmodule(){
-//	int statusGSM = P8IN;
-//	statusGSM &= BIT4;
-	if (!(P8IN &= ~BIT4))	/*GSM out of power*/
-	{
-		V5Start();
-		V4Start(); 	// Enable power to GSM
-		pwrOnOff(); 	// if GSM off
-	}
+void startGSMmodule()
+{
+	V5Start();
+	V4Start(); 	// Enable power to GSM
+	pwrOnOff(); 	// if GSM off
 }
 
