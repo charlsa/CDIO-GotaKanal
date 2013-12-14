@@ -33,23 +33,23 @@ const char responseOK[] 			= "OK\r\n";
 */
 void pinGSM()
 {
-	P4DIR |= BIT2;
+	P8DIR |= BIT2;
 	P8DIR &= ~BIT4;
+	P8OUT |= BIT3;
 }
 
 // Power on/off the GSM module
-void pwrOnOff(void)
+void pwrOnOff()
 {
-	P4OUT &= ~BIT2;
+	P8OUT &= ~BIT2;
 	int i = 0;
-
-	while(i < 10)
+	while(i < 15)
 	{
 		Delay();
 		i++;
 	}
+	P8OUT |= BIT2;
 }
-
 
 /*
  * Initiating the GSM module:
@@ -60,13 +60,12 @@ void initGSM(void)
 {
 	sendATCommand(ATecho);		//Echo mode off
 	uartEnable();				//Enable interrupt on UART
-	checkAT();					//Check OK from GSM and disable interrupt
+	checkOK();
 
-   	sendATCommand(ATtextMode);	//Text mode
-   	uartEnable();
-   	checkAT();
+	sendATCommand(ATtextMode);	//Text mode
+	uartEnable();
+	checkOK();
 }
-
 /*
  * Send AT command to Tx buffer
  * which sends it to the GSM module
@@ -75,7 +74,6 @@ void sendATCommand(const char *command)
 {
 	int length = strlen(command);
 	char c;
-
 	while(length > 0 )
     {
     	length--;
@@ -88,21 +86,40 @@ void sendATCommand(const char *command)
  * The GSM module ends the message with an "OK".
  * If the GSM sends "OK", uartRxBuf is ended and the interrupt disabled.
 */
-void checkAT()
+void checkOK()
 {
 	int j = 0;
-
 	while(id < strlen(responseOK))
 	{
 		Delay();
 		j++;
-		if (j > 200)
-			break;
+		if (j > 30) break;
 	}
+	uartRxBuf[uartStart] = '\0';
+	uartDisable();
+	uartStart = 0;
+	id = 0;
+}
+
+char checkAT()
+{
+	sendATCommand(ATtest);	//Test if GSM module can communicate.
+	uartEnable();
+	char c;
+	int j = 0;
+	while(j < 15)
+	{
+		Delay();
+		if(id != 0) break;
+		j++;
+	}
+	if(id != 0) c = '1';
+	else c = '0';
 
 	uartRxBuf[uartStart] = '\0';
 	uartDisable();
 	uartStart = 0;
 	id = 0;
+	return c;
 }
 
