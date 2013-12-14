@@ -216,7 +216,7 @@ unsigned int meanMeasurement(int length, int data[], int* pos, int number)
 	return sum/number;
 }
 
-char evaluateData(int data, int normal, int upper, int lower, unsigned int* rtcTimerH, unsigned int* rtcTimerL)
+char evaluateData(int data, int normal, int upper, int lower, unsigned int* rtcTimerH, unsigned int* rtcTimerL, char* timerAlarmFlag)
 {
 	data = normal - data;
 	int absValue = fabs(data);
@@ -233,6 +233,8 @@ char evaluateData(int data, int normal, int upper, int lower, unsigned int* rtcT
 		}
 		else if (absValue > 3*lower/4)
 		{	// Used to return from alarm
+			if(*timerAlarmFlag == '0')
+			sendSMS("Nivan har atergatt!");
 			return '0';
 		}
 		else if (absValue > (upper)/2)
