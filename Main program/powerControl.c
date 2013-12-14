@@ -48,9 +48,9 @@ void V5Stop(){
 
 void readDip(){
 
- //	P10OUT = 0xFF;	// Turn on Dip power
-	char *positions[10];
-	positions[0] = "Projektrummet";
+ 	P10OUT = 0xFF;	// Turn on Dip power
+	char *positions[12];
+	positions[0] = "Odefinerad";
 	positions[1] = "Borensberg";
 	positions[2] = "Heda";
 	positions[3] = "Ruda";
@@ -59,50 +59,51 @@ void readDip(){
 	positions[6] = "Roxen";
 	positions[7] = "karlsborg";
 	positions[8] = "Bergsgasthamn";
-	positions[9] = "BergBorn";
+	positions[9] = "Bergbron";
+
 
 	if(P6IN == 0x00)
-	{		//(00000000)  Vänster bit = bit1 på dip switch, (Läser Dip)
+	{		//(00000000)  Vï¿½nster bit = bit1 pï¿½ dip switch, (Lï¿½ser Dip)
 		writeFlashPosition(positions[0]);
 	}
-	if(P6IN == 0x01)
+	else if(P6IN == 0x01)
 	{		//(10000000)
 		writeFlashPosition(positions[1]);
 	}
-	if(P6IN == 0x02)
+	else if(P6IN == 0x02)
 	{		//(01000000)
 		writeFlashPosition(positions[2]);
 	}
-	if(P6IN == 0x04)
+	else if(P6IN == 0x04)
 	{		//(00100000)
 		writeFlashPosition(positions[3]);
 	}
-	if(P6IN == 0x08)
+	else if(P6IN == 0x08)
 	{		//(00010000)
 		writeFlashPosition(positions[4]);
 	}
-	if(P6IN == 0x30)
+	else if(P6IN == 0x30)
 	{		//(00001000)
 		writeFlashPosition(positions[5]);
 	}
-	if(P6IN == 0x20)
+	else if(P6IN == 0x20)
 	{		//(00000100)
 		writeFlashPosition(positions[6]);
 	}
-	if(P6IN == 0x40)
+	else if(P6IN == 0x40)
 	{		//(00000010)
 		writeFlashPosition(positions[7]);
 	}
-	if(P6IN == 0x80)
+	else if(P6IN == 0x80)
 	{		//(00000001)
 		writeFlashPosition(positions[8]);
 	}
-	if(P6IN == 0x03)
-	{		//(11000000)
-		writeFlashPosition(positions[9]);
+	else
+	{
+	writeFlashPosition(positions[0]);	
 	}
-		//etc, kommer behövas fylla på med positioner
-// 	P10OUT = 0x00;		// Turn off dip powe
+	
+ 	P10OUT = 0x00;		// Turn off dip powe
 }
 
 void startGSMmodule(){
