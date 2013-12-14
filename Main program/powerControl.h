@@ -12,7 +12,7 @@
 
 void boardSetup();
 
-void startCharger();
+void chargerStart();
 
 void stopCharger();
 
@@ -24,8 +24,9 @@ void V5Start();
 
 void V5Stop();
 
+void readDip();
+
 void startGSMmodule();
 
-void readDip();
 
 #endif /* POWERCONTROL_H_ */
