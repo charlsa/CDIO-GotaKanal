@@ -6,6 +6,7 @@
 #include "UART.h"
 #include "GSM_module.h"
 #include "Flash.h"
+#include "SMS.h"
 
 #include "msp430.h"
 #include <stdio.h>
@@ -18,7 +19,7 @@
 
 char loop2Mode = '0';
 char startMode = '1';
-char timerAlarmFlag = '1';		// Enable = 1 ready to send
+char timerAlarmFlag = '1';
 
 int main(void) {
     WDTCTL = WDTPW | WDTHOLD;	// Stop watchdog timer
@@ -27,7 +28,7 @@ int main(void) {
     clkSetup();
     directionSetup();
     timerA0Setup();
-    boardSetup();
+    powerPinSetup();
     rtcSetup();
 	initUART();
 	pinGSM();
@@ -39,7 +40,7 @@ int main(void) {
 
 	// Sensor variables
 	int sensorValue = 0;
-	int sensorData[LengthOfSensordata] = 0;
+	int sensorData[LengthOfSensordata] = {0};
 	char dataEnable = 0; 				// != 0 if the vector is filled ones
 	int dataPosition = 0;
 	int overflowCount = 0;
@@ -60,24 +61,24 @@ int main(void) {
 
 	__enable_interrupt();
 
-	_delay_cycles(100000);
-
 	while(1)
 	{
-		V5Start();
-		V4Start();
-
-
-
+		_no_operation();
+		char c = '0';
 		if(loop2Mode == '1' || startMode == '1')
 		{	// Power on the GSM regulator
-//			int statusGSM = P8IN;
-//			statusGSM &= BIT4;
-		//	if (!(P8IN &~ BIT4))	/*GSM out of power*/
-		//	{
-				V4Start(); 	// Enable power to GSM
-				pwrOnOff(); 	// if GSM off
-		//	}
+			V5Start();
+			V4Start(); 	// Enable power to GSMJa
+			if(P8IN &= BIT4)
+			{
+				c = checkAT();
+				if(c =='0') pwrOnOff();
+			}
+			else
+			{
+				pwrOnOff();
+				Delay();
+			}
 		}
 
 		sensorValue = mainFunctionSensor(sensorData, LengthOfSensordata, &dataPosition, &dataEnable, &overflowCount);
@@ -85,24 +86,32 @@ int main(void) {
 		if (loop2Mode == '1' || startMode == '1')
 		{	// wait for connection and check if SMS
 			unsigned int i = 0;
-			int statusGSM = P8IN;
-			statusGSM &= BIT4;
+			if(c == '0')
+				while(!(P8IN &= BIT4) || i <= 15) i++;
+			c = checkAT();
 
-			while ( (i <= 6500)) // Debug test test change ! at the first statment later... !(P8IN &= BIT4) ||
-			{	// Wait until GSM status goes high or in <3 seconds. (change to timer...)
-				__delay_cycles(185);
-				i++;// test
+			if(c == '0')
+			{
+				V4Stop();
+				V5Stop();
+				Delay();
+				V5Start();
+				V4Start();
+				Delay();
+				pwrOnOff();
+				Delay();
 			}
 			initGSM();
+
 			execution = readSMS();
 
 			if (execution == '0')
 			{	// Nothing
-
+				_no_operation();// test
 			}
 			else if (execution == 'S')
 			{	// Status report
-				responseStatus("Status\n", (normalLvl-sensorValue));
+				responseStatus("STATUS\n", (normalLvl-sensorValue));
 				deleteSMS();
 			}
 			else if (execution == 'N')
@@ -113,14 +122,14 @@ int main(void) {
 			else if (execution == 'L')
 			{	// Confirm changed normal level
 				normalLvl = readFlashSensorOffset();
-				responseLvlChange("Normalniva:\n", normalLvl);
+				responseLvlChange("Offset:\n", normalLvl);
 				deleteSMS();
 			}
 			else if (execution == 'T')
 			{	// Confirm changed thresholds
 				lowerThresholds = readFlashLowTolerance();
 				upperThresholds = readFlashHighTolerance();
-				responseThChange("Toleransniva:\n", lowerThresholds, upperThresholds);
+				responseThChange("Tolerans:\n", lowerThresholds, upperThresholds);
 				deleteSMS();
 			}
 			else if (execution == 'E')
@@ -131,6 +140,8 @@ int main(void) {
 			else if (execution == 'D')
 			{	// Disable SMS
 				sendSMS("Modulen har blivit inaktiverad");
+
+				deleteSMS();
 			}
 			else if (execution == 'A')
 			{	// Disable SMS with when alarm
@@ -139,42 +150,32 @@ int main(void) {
 				disableAlarmFlag = '1';		// Reseted when the lvl goes back to normal.
 			}
 			else
-			{	/* Nothing */	}
+			{	/* Nothing */  }
 		}
+		_no_operation();// test
 
 		// if the GSM mode disable turn of the power
 		if (loop2Mode != '1' && startMode != '1') V5Stop();
 
 		if (dataEnable != 0 && overflowCount == 0)
 		{	// Process the sensor value
-			alarm = evaluateData(sensorValue, normalLvl, upperThresholds, lowerThresholds, &rtcOffsetH, &rtcOffsetL);
+			alarm = evaluateData(sensorValue, normalLvl, upperThresholds, lowerThresholds, &rtcOffsetH, &rtcOffsetL, &timerAlarmFlag);
 		}
 		else if (overflowCount > 10)
-		{	// Alarm overflow (Problem om man minskar RTC och nÂgot ligger iv‰gen!!!!)
+		{	// Alarm overflow (Problem om man minskar RTC och n√•got ligger iv√§gen!!!!)
 			alarm = 'O';
 		}
 		else
 		{}
-
+		_no_operation();
 		if (alarm != '0')
 		{
 			startGSMmodule();		// Change name to power blablabal
-			unsigned int i = 0;
-	//		int statusGSM = P8IN;
-	//		statusGSM &= BIT4;
-
-//			while (P8IN &~ BIT4 || i++ < 99) // Debug  Variable for att inte sicka vid i owf
-			//			{	// Wait until GSM status goes high or in 3 seconds. (change to timer...)
-				__delay_cycles(3000);
-	//			statusGSM = P8IN;
-	//			statusGSM &= BIT4;
-				//	}
-
 			if (alarm == '+')
 			{	// Alarm for high water lvl
 				if (disableAlarmFlag != '1' && timerAlarmFlag == '1')
 				{
-				//	sendAlarm("Hog vattneniva: ", (normalLvl-sensorValue));
+					sendAlarm("Hog vattneniva: ", (normalLvl-sensorValue));
 					timerAlarmFlag = '0';
 				}
 			}
@@ -182,42 +183,22 @@ int main(void) {
 			{	// Alarm for low water lvl
 				if (disableAlarmFlag != '1' && timerAlarmFlag == '1')
 				{
-				//	sendAlarm("Lag vattneniva: ", (sensorValue-normalLvl));
+					sendAlarm("Lag vattneniva: ", (sensorValue-normalLvl));
 					timerAlarmFlag = '0';
 				}
 			}
-			else if (alarm == 'O')
+			else if (alarm == 'O' && timerAlarmFlag == '1')
 			{	// Alarm for overflow
-				if (timerAlarmFlag == '1')
-				{
-					sendSMS("Sensor kan vara ur funktion");
-					timerAlarmFlag = '0';
-				}
+				sendSMS("Sensor kan vara ur funktion");
+				timerAlarmFlag = '0';
 			}
-
 		}
-		else if (alarm == '0' && timerAlarmFlag == '0')
+		else if (alarm == '0' && timerAlarmFlag == '1')
 		{	// return to normal mode
 			disableAlarmFlag = '0';
-			sendSMS("Vattennivan har atergott");
-			timerAlarmFlag = '1';
-			disableAlarmFlag = '0';
+			// RTC for Repeat alarm
+			// Send sms
 		}
 		rtcStart(rtcOffsetH, rtcOffsetL);
 	}
-}
-
-#pragma vector=USCI_A1_VECTOR
-__interrupt void USCI_A1_ISR(void)
-{
-	 switch(UCA1IV){
-	    case 0:break;             	// Vector 0 - no interrupt
-	    case 2:                   	// Vector 2 - RXIF
-	    	  uartRead(UCA1RXBUF);
-	    	  UCA1IFG &= ~UCRXIFG;
-	        break;
-	    case 4:                 	// Vector 4 - TXIFG
-	        break;
-	    default: break;
-    }
 }
