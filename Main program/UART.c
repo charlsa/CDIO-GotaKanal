@@ -68,7 +68,6 @@ void uartSend(char vec)
 void uartRead(char a)
 {
     uartRxBuf[uartStart++] = a;
-
     if(responseOK[id] == a)
     	id++;
 }
