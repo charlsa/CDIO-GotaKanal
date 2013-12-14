@@ -27,7 +27,6 @@ const char responseOK[] 			= "OK\r\n";
 
 ///////////////////////////////////////////////////////////////
 
-
 /*
  * 	Sets direction for the Power on/off pin
 */
@@ -66,6 +65,7 @@ void initGSM(void)
 	uartEnable();
 	checkOK();
 }
+
 /*
  * Send AT command to Tx buffer
  * which sends it to the GSM module
@@ -93,7 +93,11 @@ void checkOK()
 	{
 		Delay();
 		j++;
-		if (j > 30) break;
+		if (j > 100)
+		{
+			_no_operation();
+			break;
+		}
 	}
 	uartRxBuf[uartStart] = '\0';
 	uartDisable();
@@ -107,7 +111,7 @@ char checkAT()
 	uartEnable();
 	char c;
 	int j = 0;
-	while(j < 15)
+	while(j < 100)
 	{
 		Delay();
 		if(id != 0) break;
