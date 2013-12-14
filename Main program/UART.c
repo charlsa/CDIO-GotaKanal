@@ -17,44 +17,50 @@ char uartRxBuf[UART_RX_BUF_LEN];
 
 void initUART(void)
 {
-	P5SEL |= BIT6+BIT7;				// Choose bit 3.4 (TX) and 3.5 (RX)
+	P9SEL |= BIT4+BIT5;				// Choose bit 3.4 (TX) and 3.5 (RX)
 
-    UCA1CTL1|= UCSWRST;             //Have to set this flag to be able to initiate & modify other registers UCSWRST=1 NOW.
-    UCA1CTL0 &= ~UCSYNC;            // 0 UART mode selected contrary to SPI mode
+    UCA2CTL1|= UCSWRST;             //Have to set this flag to be able to initiate & modify other registers UCSWRST=1 NOW.
+    UCA2CTL0 &= ~UCSYNC;            // 0 UART mode selected contrary to SPI mode
 
-    UCA1CTL1 |= 0xC0;             //CLK=SMCK chosen
+    UCA2CTL1 |= 0xC0;             //CLK=SMCK chosen
 
-    UCA1BR0 = 0x34;                 //19200 baud rate for GPRS Sim900 setup
-    UCA1BR1 = 0x00;
-    UCA1MCTL = 0;              //Set modulation control register to 0x04 and =8mhz 19200bds
+    UCA2BR0 = 0x34;                 //19200 baud rate for GPRS Sim900 setup
+    UCA2BR1 = 0x00;
+    UCA2MCTL = 0;              //Set modulation control register to 0x04 and =1mhz 19200bds
 
-    UCA1CTL1 &= ~UCSWRST;
+    UCA2CTL1 &= ~UCSWRST;
 }
 
 
 //Delay that satisfy GSM module in certain configuration
 void Delay(void)
 {
-	__delay_cycles (100000);
+	int i = 0;
+
+	while(i < 4)
+	{
+		__delay_cycles (100000);
+		i++;
+	}
 }
 
 void uartEnable(void)
 {
-	UCA1IE |= UCRXIE;
+	UCA2IE |= UCRXIE;
 }
 
 // Disable Tx/Rx interrupts
-void uartDisable(void)
+void uartDisable()
 {
-	UCA1IE &= ~UCRXIE;
+	UCA2IE &= ~UCRXIE;
 }
 
 
 // Puts a vector in the output buffer and starts the sending process
 void uartSend(char vec)
 {
-	while(!(UCA1IFG & UCTXIFG));
-    UCA1TXBUF = vec;
+	while(!(UCA2IFG & UCTXIFG));
+    UCA2TXBUF = vec;
 }
 
 
@@ -69,20 +75,18 @@ void uartRead(char a)
 
 char uart_is_tx_clear(void)
 {
-	return UCA1IFG &= UCTXIFG; 				// Dummy function that might be interesting but I gonna fix this with UCA1IFG &= UCTXIFG
+	return UCA2IFG &= UCTXIFG; 				// Dummy function that might be interesting but I gonna fix this with UCA1IFG &= UCTXIFG
 }
 
-#pragma vector=USCI_A1_VECTOR
-__interrupt void USCI_A1_ISR(void)
+#pragma vector=USCI_A2_VECTOR
+__interrupt void USCI_A2_ISR(void)
 {
-    switch(UCA1IV){
-	    case 0:break;             	// Vector 0 - no interrupt
+	 switch(UCA2IV)
+	 {
 	    case 2:                   	// Vector 2 - RXIF
-            uartRead(UCA1RXBUF);
-            UCA1IFG &= ~UCRXIFG;
-	        break;
-	    case 4:                 	// Vector 4 - TXIFG
+	    	  uartRead(UCA2RXBUF);
+	    	  UCA2IFG &= ~UCRXIFG;
 	        break;
 	    default: break;
-    }
+	 }
 }
