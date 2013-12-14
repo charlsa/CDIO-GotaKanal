@@ -46,7 +46,7 @@ void SensorCalc(unsigned int* dist);
 
 unsigned int meanMeasurement(int length, int data[], int* pos, int number);
 
-char evaluateData(int data, int normal, int upper, int lower, unsigned int* rtcTimeH, unsigned int* rtcTimeL);
+char evaluateData(int data, int normal, int upper, int lower, unsigned int* rtcTimeH, unsigned int* rtcTimeL, char* timerAlarmFlag);
 
 __interrupt void CCR1_ISR(void);
 
