@@ -28,12 +28,12 @@ int main(void) {
     clkSetup();
     directionSetup();
     timerA0Setup();
-    powerPinSetup();
+    boardSetup();
     rtcSetup();
 	initUART();
 	pinGSM();
 //	clkDebug();
-
+	readDip();
 	// test
 	V4Stop();
 	V5Stop();
@@ -63,11 +63,11 @@ int main(void) {
 
 	while(1)
 	{
+		V5Start();
 		_no_operation();
 		char c = '0';
 		if(loop2Mode == '1' || startMode == '1')
 		{	// Power on the GSM regulator
-			V5Start();
 			V4Start(); 	// Enable power to GSMJa
 			if(P8IN &= BIT4)
 			{
@@ -78,6 +78,7 @@ int main(void) {
 			{
 				pwrOnOff();
 				Delay();
+				c = '0';
 			}
 		}
 
@@ -86,20 +87,29 @@ int main(void) {
 		if (loop2Mode == '1' || startMode == '1')
 		{	// wait for connection and check if SMS
 			unsigned int i = 0;
-			if(c == '0')
-				while(!(P8IN &= BIT4) || i <= 15) i++;
-			c = checkAT();
+
+			while(!(P8IN &= BIT4) || i <= 15)
+			{
+				i++;
+			}
+			if(c == '0') c = checkAT();
 
 			if(c == '0')
 			{
 				V4Stop();
-				V5Stop();
 				Delay();
 				V5Start();
 				V4Start();
-				Delay();
-				pwrOnOff();
-				Delay();
+				if(P8IN &= BIT4)
+				{
+					c = checkAT();
+					if(c =='0') pwrOnOff();
+				}
+				else
+				{
+					pwrOnOff();
+					Delay();
+				}
 			}
 			initGSM();
 
@@ -111,35 +121,35 @@ int main(void) {
 			}
 			else if (execution == 'S')
 			{	// Status report
-				responseStatus("STATUS\n", (normalLvl-sensorValue));
+				responseStatus("STATUS i ", (normalLvl-sensorValue));
 				deleteSMS();
 			}
 			else if (execution == 'N')
 			{	// Confirm Nr change
-				responseNrChange("Nummerlista uppdaterad:\n");
+				responseNrChange("Nummerlista uppdaterad i ");
 				deleteSMS();
 			}
 			else if (execution == 'L')
 			{	// Confirm changed normal level
 				normalLvl = readFlashSensorOffset();
-				responseLvlChange("Offset:\n", normalLvl);
+				responseLvlChange("Offset i ", normalLvl);
 				deleteSMS();
 			}
 			else if (execution == 'T')
 			{	// Confirm changed thresholds
 				lowerThresholds = readFlashLowTolerance();
 				upperThresholds = readFlashHighTolerance();
-				responseThChange("Tolerans:\n", lowerThresholds, upperThresholds);
+				responseThChange("Toleranser i ", lowerThresholds, upperThresholds);
 				deleteSMS();
 			}
 			else if (execution == 'E')
 			{	// Enable SMS
-				sendSMS("Modulen har blivit aktiverad");
+				sendSMS("Modulen har blivit aktiverad i ");
 				deleteSMS();
 			}
 			else if (execution == 'D')
 			{	// Disable SMS
-				sendSMS("Modulen har blivit inaktiverad");
+				sendSMS("Modulen har blivit inaktiverad i");
 
 				deleteSMS();
 			}
@@ -154,8 +164,11 @@ int main(void) {
 		}
 		_no_operation();// test
 
-		// if the GSM mode disable turn of the power
-		if (loop2Mode != '1' && startMode != '1') V5Stop();
+		// if the GSM mode disable turn off the power
+		if (loop2Mode != '1' && startMode != '1')
+			{
+				V5Stop();
+			}
 
 		if (dataEnable != 0 && overflowCount == 0)
 		{	// Process the sensor value
@@ -170,12 +183,12 @@ int main(void) {
 		_no_operation();
 		if (alarm != '0')
 		{
-			startGSMmodule();		// Change name to power blablabal
+			//startGSMmodule();		// Change name to power blablabal
 			if (alarm == '+')
 			{	// Alarm for high water lvl
 				if (disableAlarmFlag != '1' && timerAlarmFlag == '1')
 				{
-					sendAlarm("Hog vattneniva: ", (normalLvl-sensorValue));
+					sendAlarm("Hog vattneniva i ", (normalLvl-sensorValue));
 					timerAlarmFlag = '0';
 				}
 			}
@@ -183,15 +196,17 @@ int main(void) {
 			{	// Alarm for low water lvl
 				if (disableAlarmFlag != '1' && timerAlarmFlag == '1')
 				{
-					sendAlarm("Lag vattneniva: ", (sensorValue-normalLvl));
+					sendAlarm("Lag vattneniva i ", (sensorValue-normalLvl));
 					timerAlarmFlag = '0';
 				}
 			}
 			else if (alarm == 'O' && timerAlarmFlag == '1')
 			{	// Alarm for overflow
-				sendSMS("Sensor kan vara ur funktion");
+				sendSMS("Sensor kan vara ur funktion i");
 				timerAlarmFlag = '0';
 			}
+
+
 		}
 		else if (alarm == '0' && timerAlarmFlag == '1')
 		{	// return to normal mode
