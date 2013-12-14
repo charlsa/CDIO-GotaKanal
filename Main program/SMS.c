@@ -81,11 +81,11 @@ char readSMS()
 {
     sendATCommand(ATsetSmsStorage);
     uartEnable();
-	checkAT();
+	checkOK();
 
     sendATCommand(ATreadUnreadSms);
 	uartEnable();
-	checkAT();
+	checkOK();
 
 	char executionType = '0';
 
@@ -292,6 +292,8 @@ void sendSMS(char *SMS)
 	char phoneList[104], number[12];
 	int listLength = 8, pos = 0;
 	readFlashTele(phoneList);
+	char position[30];
+	readFlashPosition(position);
 
 	while(checkNumber(phoneList, number, pos) == '1' && pos < listLength)
 	{
@@ -299,6 +301,8 @@ void sendSMS(char *SMS)
 		pos++;
 		Delay();
 		sendGSM(SMS);
+		sendGSM(position);
+		sendGSM(":\n");
 		Delay();
 		sendCtrlZ();
 
@@ -316,6 +320,8 @@ void sendAlarm(char* SMS, int value)
 	char phoneList[104], number[12];
 	int listLength = 8, pos = 0;
 	readFlashTele(phoneList);
+	char position[30];
+	readFlashPosition(position);
 
 	while(checkNumber(phoneList, number, pos) == '1' && pos < listLength)
 	{
@@ -323,6 +329,8 @@ void sendAlarm(char* SMS, int value)
 		pos++;
 		Delay();
 		sendGSM(SMS);
+		sendGSM(position);
+		sendGSM(":\n");
 		sendNumber(value);
 		Delay();
 		sendCtrlZ();
@@ -338,8 +346,8 @@ void sendAlarm(char* SMS, int value)
 void responseStatus(char *SMS, int sensor)
 {
 	//writeFlashPosition
-	//char positon[30];
-	//readFlashPosition(position[]);
+	char position[30];
+	readFlashPosition(position);
 	int lower = readFlashLowTolerance();
 	int upper = readFlashHighTolerance();
 	int offset = readFlashSensorOffset();
@@ -353,9 +361,7 @@ void responseStatus(char *SMS, int sensor)
 		pos++;
 		Delay();
 		sendGSM(SMS);
-		// Position
-		sendGSM("Position: ");
-		//sendGSM(position);
+		sendGSM(position);
 		// Normal lvl
 		sendGSM("\nOffset: ");
 		sendNumber(offset);
@@ -375,6 +381,8 @@ void responseStatus(char *SMS, int sensor)
 		Delay();
 		sendCtrlZ();
 
+
+
 		int i = 0;
 		while(i < 37)			// Optimeras!!!!
 		{
@@ -387,6 +395,8 @@ void responseNrChange(char *SMS)
 {
 	char phoneList[105], number[12];
 	int listLength = 8, pos = 0;
+	char position[30];
+	readFlashPosition(position);
 
 	readFlashTele(phoneList);
 	while(checkNumber(phoneList, number, pos) == '1' && pos < listLength)
@@ -395,6 +405,8 @@ void responseNrChange(char *SMS)
 		pos++;
 		Delay();
 		sendGSM(SMS);
+		sendGSM(position);
+		sendGSM(":\n");
 		int a = strlen(phoneList);
 		sendGSM(phoneList);
 
@@ -414,6 +426,9 @@ void responseLvlChange(char *SMS, int offset)
 	char phoneList[104], number[12];
 	int listLength = 8, pos = 0;
 	readFlashTele(phoneList);
+	char position[30];
+	readFlashPosition(position);
+
 
 	while(checkNumber(phoneList, number, pos) == '1' && pos < listLength)
 	{
@@ -421,6 +436,8 @@ void responseLvlChange(char *SMS, int offset)
 		pos++;
 		Delay();
 		sendGSM(SMS);
+		sendGSM(position);
+		sendGSM(":\n");
 		sendNumber(offset);
 		Delay();
 		sendCtrlZ();
@@ -438,6 +455,8 @@ void responseThChange(char *SMS, int lower, int upper)
 	char phoneList[104], number[12];
 	int listLength = 8, pos = 0;
 	readFlashTele(phoneList);
+	char position[30];
+	readFlashPosition(position);
 
 	while(checkNumber(phoneList, number, pos) == '1' && pos < listLength)
 	{
@@ -445,6 +464,8 @@ void responseThChange(char *SMS, int lower, int upper)
 		pos++;
 		Delay();
 		sendGSM(SMS);
+		sendGSM(position);
+		sendGSM(":\n");
 		sendGSM("Ner: "); 		// TH low
 		sendNumber(lower);
 		sendGSM("\nUpp: ");		// TH up
@@ -479,6 +500,11 @@ void deleteSMS()
 
 void sendNumber(int x)
 {
+	if(x < 0)
+	{
+		x = fabs(x);
+	}
+
 	if (x >= 10)		// Convert int to char value larger than 10
 	{
 		int y = x/10;
