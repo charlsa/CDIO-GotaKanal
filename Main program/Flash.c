@@ -22,8 +22,8 @@ void writeFlashPosition(char Value[])
 	  FCTL3 = FWKEY;                            // Clear Lock bit
 	  FCTL1 = FWKEY+ERASE;                      // Set Erase bit
 
-	char buffer[130];
-	  for(j = 0; j < 128; j++)					// copy flash value to buffer
+	char buffer[105];
+	  for(j = 0; j < 105; j++)					// copy flash value to buffer
 	  {
 		  buffer[j] = *Flash_ptrD++;
 	  }
@@ -42,7 +42,7 @@ void writeFlashPosition(char Value[])
   *(unsigned int *)Flash_ptrD = 0;				// Erase Flash
   FCTL1 = FWKEY+WRT;                        	// Set WRT bit for write operation
 
-  for(j = 0; j < 128; j++)
+  for(j = 0; j < 105; j++)
   {
 	  *Flash_ptrD++ = buffer[j];                 	// Write value to flash increase adress
   }
@@ -70,6 +70,7 @@ int j = 0;
 	  buffer[j] = *Flash_ptrD++;
 	  if(buffer[j] == '#')
 	  {
+		  buffer[j] = '\0';
 		  break;
 	  }
     }
@@ -209,8 +210,8 @@ void writeFlashTele(char Value[],int index)
 	  FCTL3 = FWKEY;                            // Clear Lock bit
 	  FCTL1 = FWKEY+ERASE;                      // Set Erase bit
 
-	char buffer[130];
-	  for(j = 0; j < 128; j++)					// copy flash value to buffer
+	char buffer[105];
+	  for(j = 0; j < 105; j++)					// copy flash value to buffer
 	  {
 		  buffer[j] = *Flash_ptrC++;
 	  }
@@ -229,10 +230,12 @@ void writeFlashTele(char Value[],int index)
   *(unsigned int *)Flash_ptrC = 0;
   FCTL1 = FWKEY+WRT;                        	// Set WRT bit for write operation
 
-  for(j = 0; j < 128; j++)
+  for(j = 0; j < 104; j++)
   {
-	  *Flash_ptrC++ = buffer[j];                 	// Write value to flash increase adress
+	  *Flash_ptrC++ = buffer[j]; // Write value to flash increase adress
   }
+  *Flash_ptrC = '\0';
+
   FCTL1 = FWKEY;                            // Clear WRT bit
   FCTL3 = FWKEY+LOCK;                       // Set LOCK bit
   __enable_interrupt();
@@ -242,10 +245,7 @@ void writeFlashTele(char Value[],int index)
 
 void readFlashTele(char* buffer)
 {
-	int Length = 15;
 	int j = 0;
-	char buf[200];
-  //Length = strlen(buffer);
 	char *Flash_ptrC;
 	Flash_ptrC = (char *) 0x1880;             // Initialize Flash segment C ptr
 
