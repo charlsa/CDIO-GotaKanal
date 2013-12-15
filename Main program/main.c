@@ -96,7 +96,7 @@ int main(void) {
 
 			if(c == '0')
 			{
-				V4Stop();
+				V4Stop();		//? Varför?
 				Delay();
 				V5Start();
 				V4Start();
@@ -188,7 +188,7 @@ int main(void) {
 				V5Start();
 				V4Start();
 				Delay();
-				pwrOnOff();
+				pwrOnOff();			// är vi säkra på att GSM är av när vi kommer hit?
 				unsigned int count = 0;
 				while(!(P8IN &= BIT4) || count < 1000)
 				{
