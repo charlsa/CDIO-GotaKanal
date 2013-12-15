@@ -183,7 +183,25 @@ int main(void) {
 		_no_operation();
 		if (alarm != '0')
 		{
-			//startGSMmodule();		// Change name to power blablabal
+			if (loop2Mode != '1' && startMode != '1' && disableAlarmFlag != '1' && timerAlarmFlag == '1')
+			{
+				V5Start();
+				V4Start();
+				Delay();
+				pwrOnOff();
+				unsigned int count = 0;
+				while(!(P8IN &= BIT4) || count < 1000)
+				{
+					count++;
+					__delay_cycles(100);
+				}
+				c = checkAT();
+				if(c == '0')
+				{
+					pwrOnOff();
+				}
+			}
+
 			if (alarm == '+')
 			{	// Alarm for high water lvl
 				if (disableAlarmFlag != '1' && timerAlarmFlag == '1')
