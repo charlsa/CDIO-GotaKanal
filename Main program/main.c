@@ -96,7 +96,7 @@ int main(void) {
 
 			if(c == '0')
 			{
-				V4Stop();		//? Varför?
+				V4Stop();
 				Delay();
 				V5Start();
 				V4Start();
@@ -166,9 +166,10 @@ int main(void) {
 
 		// if the GSM mode disable turn off the power
 		if (loop2Mode != '1' && startMode != '1')
-			{
-				V5Stop();
-			}
+		{
+			V5Stop();
+			V4Stop();
+		}
 
 		if (dataEnable != 0 && overflowCount == 0)
 		{	// Process the sensor value
@@ -188,14 +189,21 @@ int main(void) {
 				V5Start();
 				V4Start();
 				Delay();
-				pwrOnOff();			// är vi säkra på att GSM är av när vi kommer hit?
+
+				if(P8IN &= BIT4)
+				{
+					c = checkAT();
+					if(c == '0') pwrOnOff();
+				}
+				else pwrOnOff();
+
 				unsigned int count = 0;
 				while(!(P8IN &= BIT4) || count < 1000)
 				{
 					count++;
 					__delay_cycles(100);
 				}
-				c = checkAT();
+
 				if(c == '0')
 				{
 					pwrOnOff();
@@ -214,17 +222,20 @@ int main(void) {
 			{	// Alarm for low water lvl
 				if (disableAlarmFlag != '1' && timerAlarmFlag == '1')
 				{
-					sendAlarm("Lag vattneniva i ", (sensorValue-normalLvl));
+					sendAlarm("Lag vattneniva i ", (normalLvl-sensorValue));
 					timerAlarmFlag = '0';
 				}
 			}
 			else if (alarm == 'O' && timerAlarmFlag == '1')
 			{	// Alarm for overflow
-				sendSMS("Sensor kan vara ur funktion i");
+				sendSMS("Sensor kan vara ur funktion i ");
 				timerAlarmFlag = '0';
 			}
-
-
+			if (loop2Mode != '1' && startMode != '1')
+			{
+				V5Stop();
+				V4Stop();
+			}
 		}
 		else if (alarm == '0' && timerAlarmFlag == '1')
 		{	// return to normal mode
