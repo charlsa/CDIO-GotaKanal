@@ -5,6 +5,8 @@
  *      Author: Challe
  */
 #include "powerControl.h"
+#include "Flash.h"
+#include "GSM_module.h"
 
 void boardSetup(){
 	P8DIR |= BIT0 + BIT2 + BIT3 + BIT5; 	// Bit0 = 4.1V, Bit1 = 5V and Bit5 = second GSM
@@ -60,7 +62,7 @@ void readDip(){
 	positions[5] = "Boren";
 	positions[6] = "Roxen";
 	positions[7] = "Karlsborg";
-	positions[8] = "Bergsgasthamn";
+	positions[8] = "Bergs gasthamn";
 	positions[9] = "Bergbron";
 
 
