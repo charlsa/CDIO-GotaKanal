@@ -331,6 +331,10 @@ void sendAlarm(char* SMS, int value)
 		sendGSM(SMS);
 		sendGSM(position);
 		sendGSM(":\n");
+		if(value > 0)
+			sendGSM("+");
+		else
+			sendGSM("-");
 		sendNumber(value);
 		Delay();
 		sendCtrlZ();
@@ -488,6 +492,8 @@ void sendCtrlZ(void)
 {
 	while(!(UCA2IFG & UCTXIFG));		//TX buffer ready?
     UCA2TXBUF=26;                       //ASCII number for Ctrl+Z
+
+    checkAT();
 }
 
 /*
