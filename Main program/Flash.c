@@ -5,7 +5,7 @@
  *      Author: Peter
  */
 #include "Flash.h"
-
+#include <string.h>
 // segment D 0x1800 -> 0x1879
 // Segment C 0x1880 -> 128byte
 
@@ -260,6 +260,8 @@ void readFlashTele(char* buffer)
     {
 		buffer[j] = *Flash_ptrC++;
     }
+
+	buffer[j] = '\0';
 
 /*	for(j = 0; j < 104; j++)
     {
