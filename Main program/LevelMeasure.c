@@ -5,6 +5,7 @@
  *      Author: hej
  */
 #include "LevelMeasure.h"
+#include "SMS.h"
 int loopChange = 100;
 int loopChange2 = 5;
 
@@ -228,7 +229,11 @@ char evaluateData(int data, int normal, int upper, int lower, unsigned int* rtcT
 		else if (absValue > 3*lower/4)
 		{	// Used to return from alarm
 			if(*timerAlarmFlag == '0')
+			{
+				*timerAlarmFlag = '1';
 				sendSMS("Nivan har atergatt!");
+			}
+
 			return '0';
 		}
 		else if (absValue > (upper)/2)
