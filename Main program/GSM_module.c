@@ -109,21 +109,20 @@ char checkAT()
 {
 	sendATCommand(ATtest);	//Test if GSM module can communicate.
 	uartEnable();
-	char c;
+	char c = '0';
 	int j = 0;
-	while(j < 100)
+	while(id < strlen(responseOK))
 	{
 		Delay();
-		if(id != 0) break;
 		j++;
+		if(id != 0) c = '1';
+		if (j > 100) break;
 	}
-	if(id != 0) c = '1';
-	else c = '0';
-
 	uartRxBuf[uartStart] = '\0';
 	uartDisable();
 	uartStart = 0;
 	id = 0;
+
 	return c;
 }
 
