@@ -6,6 +6,8 @@
  */
 #include "LevelMeasure.h"
 #include "SMS.h"
+#include "powerControl.h"
+
 int loopChange = 100;
 int loopChange2 = 5;
 
@@ -94,16 +96,11 @@ int pickvalue(unsigned int data[], int length)
 	int g = 0;
 	int d = 0;
 
-	for (d; d < length; d++)
+	while(d < length)
 	{
-		if (data[d]< Underflow)
-		{
-			countstart++;
-		}
-		if (data[d] > Oveflow)
-		{
-			countend++;
-		}
+		if (data[d]< Underflow)	countstart++;
+		if (data[d] > Oveflow) countend++;
+		d++;
 	}
 
 	g = length - countend;
@@ -112,12 +109,9 @@ int pickvalue(unsigned int data[], int length)
 	g = g + countstart;
 
 	if (data[g] <= Oveflow && data[g] >= Underflow)
-	{
 		return data[g];
-	}
 	return 0;
 }
-
 
 void sortData(unsigned int data[], int length)
 {
@@ -222,18 +216,23 @@ char evaluateData(int data, int normal, int upper, int lower, unsigned int* rtcT
 		{	// Send alarm for high water lvl
 			*rtcTimerL = 0x78FF;
 			*rtcTimerH = 0xFC6C;
-			loopChange = 100;
-			loopChange2 = 5;
+			loopChange = 70; //DEBUG
+			loopChange2 = 10;
 			return '+';
 		}
 		else if (absValue > 3*lower/4)
 		{	// Used to return from alarm
+			*rtcTimerL = 0x78FF;
+			*rtcTimerH = 0xFC6C;
+			loopChange = 70; //DEBUG
+			loopChange2 = 10;
+
 			if(*timerAlarmFlag == '0')
 			{
 				*timerAlarmFlag = '1';
-				sendSMS("Nivan har atergatt!");
+				startGSMmodule();
+				sendSMS("Nivan har atergatt i ");
 			}
-
 			return '0';
 		}
 		else if (absValue > (upper)/2)
@@ -241,7 +240,14 @@ char evaluateData(int data, int normal, int upper, int lower, unsigned int* rtcT
 			*rtcTimerL = 0x6AFF;
 			*rtcTimerH = 0xF545;
 			loopChange = 38;
-			loopChange2 = 2;
+			loopChange2 = 4;
+
+			if(*timerAlarmFlag == '0')
+			{
+				*timerAlarmFlag = '1';
+				startGSMmodule();
+				sendSMS("Nivan har atergatt i ");
+			}
 			return '0';
 		}
 		else if (absValue > (upper)/3)
@@ -249,27 +255,40 @@ char evaluateData(int data, int normal, int upper, int lower, unsigned int* rtcT
 			*rtcTimerL = 0xC7FF;
 			*rtcTimerH = 0xE363;
 			loopChange = 15;
-			loopChange2 = 1;
+			loopChange2 = 2;
+			if(*timerAlarmFlag == '0')
+			{
+				*timerAlarmFlag = '1';
+				startGSMmodule();
+				sendSMS("Nivan har atergatt i ");
+			}
 			return '0';
 		}
-		else
-		{
-			return '0';
-		}
+		else return '0';
 	}
 	else if (data < 0)
 	{	// Check if under the normal lvl
 		if (absValue > lower)
 		{ // send alarm for low water lvl
-			_no_operation();// test
 			*rtcTimerL = 0x78FF;
 			*rtcTimerH = 0xFC6C;
-			loopChange = 100;
-			loopChange2 = 5;
+			loopChange = 70; //DEBUG
+			loopChange2 = 10;
 			return '-';
 		}
 		else if (absValue > 3*lower/4)
 		{	// Used to return form alarm
+			*rtcTimerL = 0x78FF;
+			*rtcTimerH = 0xFC6C;
+			loopChange = 70; //DEBUG
+			loopChange2 = 10;
+
+			if(*timerAlarmFlag == '0')
+			{
+				*timerAlarmFlag = '1';
+				startGSMmodule();
+				sendSMS("Nivan har atergatt i ");
+			}
 			return '0';
 		}
 		else if (absValue > (lower)/2)
@@ -277,7 +296,13 @@ char evaluateData(int data, int normal, int upper, int lower, unsigned int* rtcT
 			*rtcTimerL = 0x6AFF;
 			*rtcTimerH = 0xF545;
 			loopChange = 38;
-			loopChange2 = 2;
+			loopChange2 = 4;
+			if(*timerAlarmFlag == '0')
+			{
+				*timerAlarmFlag = '1';
+				startGSMmodule();
+				sendSMS("Nivan har atergatt i ");
+			}
 			return '0';
 		}
 		else if (absValue > (lower)/3)
@@ -285,19 +310,18 @@ char evaluateData(int data, int normal, int upper, int lower, unsigned int* rtcT
 			*rtcTimerL = 0xC7FF;
 			*rtcTimerH = 0xE363;
 			loopChange = 15;
-			loopChange2 = 1;
+			loopChange2 = 2;
+			if(*timerAlarmFlag == '0')
+			{
+				*timerAlarmFlag = '1';
+				startGSMmodule();
+				sendSMS("Nivan har atergatt i ");
+			}
 			return '0';
 		}
-		else
-		{
-			return '0';
-		}
+		else return '0';
 	}
-	else
-	{
-		return '0';
-	}
-
+	else return '0';
 }
 
 #pragma vector=TIMER0_A1_VECTOR
