@@ -7,6 +7,8 @@
 #include "powerControl.h"
 #include "Flash.h"
 #include "GSM_module.h"
+#include "UART.h"
+
 
 void boardSetup(){
 	P8DIR |= BIT0 + BIT2 + BIT3 + BIT5; 	// Bit0 = 4.1V, Bit1 = 5V and Bit5 = second GSM
@@ -27,6 +29,7 @@ void stopCharger(){
 
 void V4Start(){
 	P8OUT |= BIT5; // enable 4.1 V
+	_delay_cycles(100000);
 }
 
 void V4Stop(){
@@ -42,7 +45,8 @@ void tmpvV4Stop(){
 }
 
 void V5Start(){
-	P8OUT |= BIT0; // enable 5 V
+	P8OUT |= BIT0;// enable 5 V
+	_delay_cycles(100000);
 }
 
 void V5Stop(){
@@ -113,7 +117,37 @@ void readDip(){
 void startGSMmodule()
 {
 	V5Start();
-	V4Start(); 	// Enable power to GSM
-	pwrOnOff(); 	// if GSM off
+	V4Start();
+	Delay();
+	char c = '0';
+	if(P8IN &= BIT4)
+	{
+		c = checkAT();
+		if(c == '0') pwrOnOff();
+	}
+	else pwrOnOff();
+	unsigned int count = 0;
+	while(!(P8IN &= BIT4) || count < 40000)
+	{
+		count++;
+		__delay_cycles(100);
+	}
+	c = checkAT();
+	if(c == '0')
+	{
+		pwrOnOff();
+	}
+	count = 0;
+	while(!(P8IN &= BIT4) || count < 40000)
+	{
+		count++;
+		__delay_cycles(100);
+	}
+	/*int i = 0;
+	while(i < 8)
+	{
+		Delay();
+		i++;
+	}*/
 }
 
