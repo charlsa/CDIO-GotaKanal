@@ -36,9 +36,9 @@ void rtcSetup()
 
 void rtcStart(unsigned int rtcOffsetH, unsigned int rtcOffsetL)
 {
-	RTCTIM0 = 0xF000;//rtcOffsetL;				// if not reseted, reset
-	RTCTIM1 = 0xFFFF;//rtcOffsetH; 				// changed to offset
-	RTCCTL01 &= ~RTCHOLD; 				// Start RTC (Hold is writen to Zero)
+	RTCTIM0 =   rtcOffsetL; //0xF000;  			// if not reseted, reset
+	RTCTIM1 =  rtcOffsetH; //0xFFFF;  				// changed to offset
+	RTCCTL01 &= ~RTCHOLD; 				// Start RTC (Hold is written to Zero)
 	__bis_SR_register(LPM3_bits + GIE); // Sets the MCU into LPM3 => only (ACLK != 0)
 }
 
@@ -53,19 +53,29 @@ __interrupt void RTC_ISR(void)
 	LPM3_EXIT;
 	rtcStop(); 				// stop RTC
 
-	if (loop1 > loopChange)
+	if (loop1 > loopChange)// säger hur länge gsm är av
 	{	// when lopp1 have count to loopChange then loop2 is enable
 		loop2Mode = '1';	// Enable GSM loop
 		startMode = '0';	// Disable Startup Mode
-
 		loop2++;
 
-		if (loop2 > loopChange2)
+		if (loop2 > loopChange2) // säger hur länge gsm är på
 		{	// When loop2 reaches loopChange2 loop 2 will be
 			loop1 = 0;
 			loop2 = 0;
 			loop2Mode = '0';
-			timerAlarmFlag = '1';
+			sendPhonenumber("+46735082283"); //DEBUG
+			Delay();
+			sendGSM("Nu ska jag sova");
+			Delay();
+					sendCtrlZ();
+
+					int i = 0;
+					while(i < 37)			// Optimeras!!!!
+					{
+						Delay(); i++;
+					} // Här slutar DEBUG
+				//timerAlarmFlag = '1';
 		}
 	}
 	else
