@@ -64,6 +64,7 @@ int main(void) {
 	while(1)
 	{
 		V5Start();
+
 		_no_operation();
 		char c = '0';
 		if(loop2Mode == '1' || startMode == '1')
@@ -81,22 +82,23 @@ int main(void) {
 				c = '0';
 			}
 		}
-
 		sensorValue = mainFunctionSensor(sensorData, LengthOfSensordata, &dataPosition, &dataEnable, &overflowCount);
 
 		if (loop2Mode == '1' || startMode == '1')
 		{	// wait for connection and check if SMS
-			unsigned int i = 0;
+			unsigned int count = 0;
 
-			while(!(P8IN &= BIT4) || i <= 15)
+			while(!(P8IN &= BIT4) || count < 40000)
 			{
-				i++;
+				count++;
+				__delay_cycles(100);
 			}
 			if(c == '0') c = checkAT();
 
 			if(c == '0')
 			{
 				V4Stop();
+				Delay();
 				Delay();
 				V5Start();
 				V4Start();
@@ -112,7 +114,6 @@ int main(void) {
 				}
 			}
 			initGSM();
-
 			execution = readSMS();
 
 			if (execution == '0')
@@ -145,12 +146,13 @@ int main(void) {
 			else if (execution == 'E')
 			{	// Enable SMS
 				sendSMS("Modulen har blivit aktiverad i ");
+				disableAlarmFlag = '0';
 				deleteSMS();
 			}
 			else if (execution == 'D')
 			{	// Disable SMS
 				sendSMS("Modulen har blivit inaktiverad i");
-
+				disableAlarmFlag = '1';
 				deleteSMS();
 			}
 			else if (execution == 'A')
@@ -162,7 +164,6 @@ int main(void) {
 			else
 			{	/* Nothing */  }
 		}
-		_no_operation();// test
 
 		// if the GSM mode disable turn off the power
 		if (loop2Mode != '1' && startMode != '1')
@@ -181,40 +182,21 @@ int main(void) {
 		}
 		else
 		{}
-		_no_operation();
 		if (alarm != '0')
 		{
 			if (loop2Mode != '1' && startMode != '1' && disableAlarmFlag != '1' && timerAlarmFlag == '1')
+				startGSMmodule();
+			if(loop2Mode == '1' && startMode == '1' && disableAlarmFlag != '1' && timerAlarmFlag == '1')
 			{
-				V5Start();
-				V4Start();
-				Delay();
-
-				if(P8IN &= BIT4)
-				{
-					c = checkAT();
-					if(c == '0') pwrOnOff();
-				}
-				else pwrOnOff();
-
-				unsigned int count = 0;
-				while(!(P8IN &= BIT4) || count < 1000)
-				{
-					count++;
-					__delay_cycles(100);
-				}
-
+				c = checkAT();
 				if(c == '0')
-				{
-					pwrOnOff();
-				}
+					startGSMmodule();
 			}
-
 			if (alarm == '+')
 			{	// Alarm for high water lvl
 				if (disableAlarmFlag != '1' && timerAlarmFlag == '1')
 				{
-					sendAlarm("Hog vattneniva i ", (normalLvl-sensorValue));
+					sendAlarm("Hog vattenniva i ", (normalLvl-sensorValue));
 					timerAlarmFlag = '0';
 				}
 			}
@@ -222,7 +204,7 @@ int main(void) {
 			{	// Alarm for low water lvl
 				if (disableAlarmFlag != '1' && timerAlarmFlag == '1')
 				{
-					sendAlarm("Lag vattneniva i ", (normalLvl-sensorValue));
+					sendAlarm("Lag vattenniva i ", (normalLvl-sensorValue));
 					timerAlarmFlag = '0';
 				}
 			}
@@ -231,7 +213,9 @@ int main(void) {
 				sendSMS("Sensor kan vara ur funktion i ");
 				timerAlarmFlag = '0';
 			}
-			if (loop2Mode != '1' && startMode != '1')
+			else {}
+
+			if (loop2Mode != '1' && startMode != '1' && timerAlarmFlag == '1')
 			{
 				V5Stop();
 				V4Stop();
